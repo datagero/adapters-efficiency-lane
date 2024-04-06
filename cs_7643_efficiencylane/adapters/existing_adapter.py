@@ -7,7 +7,11 @@ from adapters import RobertaAdapterModel, AdapterConfig
 from transformers import RobertaTokenizer, RobertaConfig
 from datasets import load_dataset
 
-dataset = load_dataset("rotten_tomatoes")
+dataset = load_dataset("rotten_tomatoes", data_dir="tmp/rotten_tomatoes")
+
+# Save dataset to disk
+# dataset.save_to_disk("tmp/rotten_tomatoes")
+
 dataset.num_rows
 dataset['train'][0]
 
