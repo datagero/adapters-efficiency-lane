@@ -11,6 +11,7 @@ adapters = "^0.1.2"
 torch = "^2.2.2"
 datasets = "^2.18.0"
 accelerate = "^0.29.1"
+transformers = "4.36.2"
 
 [build-system]
 requires = ["poetry-core"]
