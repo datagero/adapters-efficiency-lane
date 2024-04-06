@@ -1,6 +1,6 @@
 import os
 import requests
-from datasets import DATASETS
+from gp_datasets import DATASETS
 
 
 def download_file(url, directory):
@@ -35,3 +35,5 @@ for dataset_name, dataset_info in DATASETS.items():
     print(f"Finished downloading {dataset_name}.\n")
 
 print("All datasets downloaded.")
+
+

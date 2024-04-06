@@ -34,4 +34,4 @@ allenai/news_roberta_base
 `python download_pretrained_models.py`
 
 All the models will be downloaded to the folder pretrained_models/
-This might take upto a minute.
+This might take a few minutes.

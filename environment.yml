@@ -7,8 +7,11 @@ dependencies:
   - pip
   - pip:
     - torch
+    - tokenizers
+    - setuptools
+    - wheel
     - transformers
-    - adapters
+    - adapter-transformers
     - datasets
     - tqdm
 
