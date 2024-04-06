@@ -1,0 +1,14 @@
+name: dlgp
+channels:
+  - defaults
+dependencies:
+  - python
+  - pytorch
+  - pip
+  - pip:
+    - torch
+    - transformers
+    - adapters
+    - datasets
+    - tqdm
+
