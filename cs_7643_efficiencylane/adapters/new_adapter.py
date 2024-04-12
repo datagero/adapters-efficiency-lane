@@ -59,7 +59,8 @@ model.train_adapter(adapter_name)
 def objective(trial):
     # Suggest values for the learning rate and batch size
     learning_rate = trial.suggest_loguniform('learning_rate', 1e-5, 1e-3)
-    batch_size = trial.suggest_categorical('batch_size', [8, 16, 32])
+    batch_size = trial.suggest_categorical('batch_size', [16, 32, 64, 128, 256])
+    train_epochs = trial.suggest_int('train_epochs', 10, 100)
 
     # Get the trial number and define output dir
     trial_number = trial.number
@@ -69,7 +70,7 @@ def objective(trial):
     # Note the differences in hyperparameters compared to full fine-tuning. Adapter training usually requires a few more training epochs than full fine-tuning.
     training_args = TrainingArguments(
         learning_rate=learning_rate,
-        num_train_epochs=6,
+        num_train_epochs=train_epochs,
         per_device_train_batch_size=batch_size,
         per_device_eval_batch_size=batch_size,
         logging_steps=200, #Log every 200 training steps (i.e., this is why we see decimal epochs)
@@ -119,7 +120,7 @@ def objective(trial):
 import optuna
 
 
-study_name = f"{adapter_name}_training-6"
+study_name = f"{adapter_name}_training-7"
 storage = "sqlite:///db.sqlite3"
 
 try:
@@ -131,7 +132,7 @@ except KeyError:
     study = optuna.create_study(study_name=study_name, storage=storage, direction='minimize')
     print(f"Study '{study_name}' created.")
 
-study.optimize(objective, n_trials=5)
+study.optimize(objective, n_trials=10)
 print("Best trial:", study.best_trial.params)
 #Best trial: {'learning_rate': 0.0002183987833471655, 'batch_size': 16}
 

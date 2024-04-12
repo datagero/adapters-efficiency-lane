@@ -2,7 +2,7 @@ import os
 import json
 import torch
 from datasets import load_dataset
-from transformers import RobertaTokenizer
+from transformers import RobertaTokenizer, DataCollatorForLanguageModeling
 
 class CitationIntentDataLoader:
     def __init__(self, model_name, dataset_name, path, checkpoint_path):
@@ -26,6 +26,10 @@ class CitationIntentDataLoader:
         # Transform to pytorch tensors and only output the required columns
         loaded_dataset.set_format(type="torch", columns=["input_ids", "attention_mask", "labels"])
         return loaded_dataset
+
+    def get_data_collator(self):
+        data_collator = DataCollatorForLanguageModeling(tokenizer=self.tokenizer, mlm=True, mlm_probability=0.15)
+        return data_collator
 
     def _load_and_process_dataset(self):
         data_files = {

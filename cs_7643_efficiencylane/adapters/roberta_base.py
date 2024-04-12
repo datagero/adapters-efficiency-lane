@@ -7,23 +7,6 @@ import torch
 import numpy as np
 from sklearn.metrics import f1_score
 
-def f1_score_manual(true_labels, predictions):
-    unique_labels = np.unique(true_labels)
-    f1_scores = []
-    
-    for label in unique_labels:
-        tp = np.sum((predictions == label) & (true_labels == label))
-        fp = np.sum((predictions == label) & (true_labels != label))
-        fn = np.sum((predictions != label) & (true_labels == label))
-        
-        precision = tp / (tp + fp) if (tp + fp) > 0 else 0
-        recall = tp / (tp + fn) if (tp + fn) > 0 else 0
-        f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
-        
-        f1_scores.append(f1)
-    
-    return np.mean(f1_scores)
-
 # ======================================================
 # Set-up and Load Data
 # ======================================================
@@ -47,12 +30,15 @@ config = RobertaConfig.from_pretrained(
     num_labels=loader.num_labels,
     problem_type="single_label_classification",
     hidden_dropout_prob=0.1,  # Dropout probability as specified
-    classifier_dropout=0.1    # Additional dropout in the classification head
+    # classifier_dropout=0.1    # Additional dropout in the classification head
 )
 
-model = RobertaForSequenceClassification.from_pretrained(model_name, config=config)#.to(device)
+model_variant = './mlm_model'
+# model_variant = model_name
 
-model.eval()
+model = RobertaForSequenceClassification.from_pretrained(model_variant, config=config)#.to(device)
+
+# model.eval()
 model.to(torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
 
 def compute_accuracy(p: EvalPrediction):
@@ -80,8 +66,9 @@ training_args = TrainingArguments(
     output_dir='./results',
     num_train_epochs=10,  # Adjust as needed
     per_device_train_batch_size=16,
+    learning_rate=2e-5,
     warmup_steps=500,
-    weight_decay=0.01,
+    # weight_decay=0.01,
     logging_dir='./logs',
     logging_steps=100,
     evaluation_strategy="steps",

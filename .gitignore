@@ -4,6 +4,7 @@ archive/
 data/
 mlruns/
 results/
+mlm_model/
 
 __pycache__/
 *.py[cod]
