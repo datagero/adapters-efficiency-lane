@@ -1,5 +1,9 @@
 training_output/
 final_adapter/
+archive/
+data/
+mlruns/
+results/
 
 __pycache__/
 *.py[cod]
