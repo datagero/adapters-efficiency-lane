@@ -24,7 +24,7 @@ class CitationIntentDataLoader:
             print("Dataset saved as checkpoint at:", self.checkpoint_path)
 
         # Transform to pytorch tensors and only output the required columns
-        loaded_dataset.set_format(type="torch", columns=["input_ids", "attention_mask", "labels"])
+        loaded_dataset.set_format(type="torch", columns=["input_ids", "attention_mask", "label"])
         return loaded_dataset
 
     def get_data_collator(self):

@@ -91,3 +91,17 @@ poetry.lock
 .pytest_cache/
 
 .DS_Store
+
+
+# Latex
+*.aux
+*.fdb_latexmk
+*.fls
+*.out
+*.pdf
+*.synctex.gz
+*.log
+*.lof
+*.lot
+*.toc
+

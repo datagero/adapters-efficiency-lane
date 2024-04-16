@@ -1,0 +1,285 @@
+\documentclass[12pt]{article}
+
+% Packages
+\usepackage{titlesec}
+\usepackage[normalem]{ulem} % Import ulem, but use the normalem option to keep \emph{} italicized
+\usepackage{amsmath, amsthm, amssymb, amsfonts}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage[utf8]{inputenc}
+\usepackage{xcolor}
+\usepackage{mdframed}
+\usepackage{geometry}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage{fancyhdr}
+\usepackage{tabularx}
+\usepackage{float}
+\usepackage{multicol}
+
+% Set the page margins using the geometry package
+\geometry{a4paper, margin=0.75in}
+
+
+% Define a new command for dynamic column table
+\newcommand{\dynamiccolumntable}[4]{%
+\begin{center} % <-- Center the table
+#1 % <-- Font size parameter
+\captionsetup{justification=centering}
+\begin{tabularx}{\textwidth}{|#3|}
+\hline
+#2 \\
+\hline
+\end{tabularx}
+\captionof{table}{#4}
+\end{center}
+}
+
+\begin{document}
+
+\title{Efficiency Lane: Task-Specific Adapters for RoBERTa on AdapterHub\\
+{\large Team Name: AdapBERTa}}
+\author{Girish Sharma, Matias Vizcaino, William Gleason}
+\date{\today}
+\maketitle
+
+\begin{abstract}
+Brief overview of the project, its significance, and expected outcomes.
+\end{abstract}
+
+\tableofcontents
+\listoffigures
+\listoftables
+
+
+\section{Introduction}
+
+\subsection{Background Information}
+
+The introduction of transformer-based models, particularly BERT (Bidirectional Encoder Representations from Transformers) and RoBERTa (Robustly optimized BERT approach), has revolutionized the field of natural language processing (NLP). These models leverage deep, bidirectional training on extensive datasets to achieve a sophisticated level of language comprehension, setting new standards for a myriad of NLP tasks. Traditionally, leveraging these models for specific applications has necessitated full pretraining followed by extensive fine-tuning—processes requiring significant computational power and data storage. This approach, while effective, often becomes impractical in resource-constrained environments due to its high demand for resources.
+
+BERT pioneered the concept of pretraining a general-purpose language model on a large corpus and then fine-tuning it on a smaller, task-specific dataset. RoBERTa extended this approach by training on even larger corpora and for longer durations, significantly enhancing performance across various benchmarks. However, the necessity for full fine-tuning—where every parameter of the model is adjusted to the specifics of a new task—presents a considerable challenge: it is both time-consuming and computationally intensive.
+
+In response to these challenges, the development of parameter-efficient fine-tuning (PEFT) techniques has gained momentum. PEFT strategies aim to adapt pre-trained models to new tasks with minimal updates to their parameters, thereby significantly reducing computational overhead while striving to maintain high performance levels. Among these techniques, adapters stand out as particularly effective. Adapters are small, trainable modules inserted between the layers of a pre-trained model, allowing for task-specific adjustments without the need for retraining the entire model. This method offers a modular and efficient solution for applying transformers in diverse settings.
+
+Adapters offer several advantages over other PEFT methods such as pruning, quantization, and knowledge distillation:
+\begin{itemize}
+    \item \textbf{Modularity:} Adapters allow for easy addition and removal from pre-trained models, facilitating flexible adjustments to models without interfering with their pre-trained components.
+    \item \textbf{Efficiency:} By only training a small number of additional parameters, adapters significantly reduce the computational resources required for fine-tuning.
+    \item \textbf{Preservation of Base Model Integrity:} Unlike methods that modify existing weights (such as pruning), adapters preserve the original model weights, which can be advantageous for maintaining baseline performance across tasks.
+\end{itemize}
+
+These characteristics make adapters an attractive option for enhancing the efficiency of transformer-based models, particularly in scenarios where multiple tasks or domains are involved. The "Efficiency Lane: Task-Specific Adapters for RoBERTa on AdapterHub" project aims to explore the potential of adapters to achieve a balance between efficiency and performance, hypothesizing that they can provide substantial benefits over other PEFTs in terms of scalability and ease of integration into existing systems. This investigation is expected to contribute significantly to the ongoing optimization of NLP applications, making state-of-the-art models more accessible and practical for a broader range of users and applications.
+
+
+\subsection{Project Objectives}
+This project seeks to demonstrate that adapters can achieve performance comparable to full model fine-tuning with greater efficiency. The objectives are to:
+\begin{itemize}
+    \item Develop and assess task-specific adapters for the RoBERTa model on AdapterHub, initially focusing on the ACL-ARC and SCIERC tasks within the CS domain.
+    \item Explore various adapter architectures and configurations to evaluate their impact on model performance and resource efficiency.
+    \item Extend the use of adapters to additional tasks and domains, and investigate advanced techniques such as AdapterFusion and knowledge transfer methods to enhance the scalability and modularity of transformer applications in NLP.
+    \item Address the potential performance trade-offs of adapters due to the limited number of parameters being fine-tuned, exploring their adaptability to complex tasks and seeking optimal balances for various deployment scenarios.
+\end{itemize}
+
+
+
+\section{Literature Review}
+
+
+\subsection{Overview of Fine-Tuning Techniques}
+Fine-tuning pre-trained models, such as BERT and RoBERTa, on specific tasks is crucial for leveraging these large-scale language models in diverse NLP applications. Fine-tuning can be broadly categorized into full and partial techniques, each suited to different operational contexts and objectives:
+\begin{itemize}
+    \item \textbf{Full Fine-Tuning:} This traditional approach involves updating all parameters of a pre-trained model using a smaller, task-specific dataset. While it can lead to significant performance gains, it also presents multiple challenges:
+        \begin{itemize}
+            \item \textbf{Resource Intensity:} Modifying hundreds of millions of parameters demands extensive computational resources, often unfeasible in resource-constrained settings.
+            \item \textbf{Risk of Overfitting:} There is an increased likelihood of the model overfitting to the small training dataset, which can degrade its performance on unseen data.
+            \item \textbf{Catastrophic Forgetting:} There is a risk of the model losing its pre-trained capabilities, particularly if the fine-tuning data vastly differ from the original training corpus.
+        \end{itemize}
+    \item \textbf{Partial Fine-Tuning:} As an alternative, partial fine-tuning updates only a subset of the model's parameters, typically the layers closer to the output. This method is more resource-efficient and can help mitigate the risk of catastrophic forgetting and overfitting:
+        \begin{itemize}
+            \item \textbf{Domain-Specific Fine-Tuning:} Adapts the model to the nuances of a specific domain by training on a domain-relevant dataset.
+            \item \textbf{Task-Specific Fine-Tuning:} Tailors the model to perform well on a particular task by focusing the updates on task-relevant aspects of the model.
+        \end{itemize}
+\end{itemize}
+These differentiated strategies address the inherent limitations of traditional full-model fine-tuning by providing alternatives that are more adaptable to various computational and data environments. The next section will explore these alternatives in greater depth, particularly focusing on emerging, resource-efficient methods such as parameter-efficient fine-tuning (PEFT), which further refine the adaptability and efficiency of deploying modern NLP systems.
+
+\subsection{Comprehensive Overview of Parameter-Efficient Fine-Tuning (PEFT)}
+
+Emerging as a promising solution to traditional fine-tuning drawbacks, Parameter-Efficient Fine-Tuning (PEFT) represents an innovative suite of techniques aimed at adapting pre-trained models with minimal alterations to their existing parameters. These methods are particularly advantageous in scenarios where computational resources are scarce or there's a need to avert overfitting. The primary techniques within PEFT include:
+
+\begin{itemize}
+    \item \textbf{(Bottleneck) Adapters:} These are small, trainable layers, such as bottleneck adapters, strategically inserted within the Transformer architecture. Adapters can be fine-tuned independently of the main model parameters, thus enabling targeted updates without extensive retraining. Attributes like \textit{reduction\_factor} allow for the customization of the adapter's impact and complexity. Platforms such as AdapterHub further facilitate the use of adapters across diverse tasks.
+    
+    \item \textbf{Prompt Tuning:} This method introduces tunable tokens or "soft-prompts" to the input sequence. These prompts subtly alter the attention and outputs of the model, thereby guiding its behavior with minimal parameter updates, making it highly efficient for specific tasks.
+    
+    \item \textbf{Low-Rank Adaptation (LoRA):} LoRA targets specific weight matrices within the Transformer model for reparameterization, effectively updating the model by adjusting only a small subset of its parameters through low-rank matrices.
+    
+    \item \textbf{Selective Layer Training:} This approach involves fine-tuning certain layers of the model while keeping others frozen, particularly useful in transfer learning where different layers of the model encapsulate various levels of feature abstraction.
+\end{itemize}
+
+Despite the efficiency of PEFT strategies, challenges such as catastrophic forgetting and limited adaptability can arise. To address these issues, additional techniques such as multi-task learning and AdapterFusion are employed to enhance the flexibility and robustness of the models.
+
+\textbf{Comparison with Partial Fine-Tuning:}
+While both PEFT and partial fine-tuning are designed to enhance the efficiency of model updates, they differ in their scope and methodology:
+\begin{itemize}
+    \item \textbf{Similarity:} Both strategies aim to optimize the fine-tuning process by reducing the number of parameters that require training. This is crucial for managing computational resources and minimizing overfitting, especially in large-scale models.
+    
+    \item \textbf{Difference:} PEFT focuses on employing minimalistic yet innovative adjustments to model architecture (e.g., adapters, prompts), thereby maintaining high efficiency in parameter updates. Partial fine-tuning, however, often involves more conventional methods such as selectively training certain model layers while others remain static.
+\end{itemize}
+
+In essence, PEFT is a specialized subset of fine-tuning techniques that strive for maximum parameter efficiency, whereas partial fine-tuning encompasses a broader range of methods for training selective parts of a model. Each technique serves to adapt a pre-trained model to new tasks or data, varying in efficiency and applicability based on the specific requirements of the task at hand.
+
+\subsection{Related Work}
+Significant research contributions have refined our understanding and implementation of PEFT. Studies like those by Gururangan et al. (2020) highlight the benefits of domain-adaptive pre-training (DAPT) and task-adaptive pre-training (TAPT), which tailor the pre-training phase to more closely align with the characteristics of the target tasks, potentially enhancing subsequent fine-tuning outcomes. While these studies primarily focus on the impacts of adapting pre-training, their insights are crucial for informing PEFT strategies where only a fraction of the model's parameters are adjusted to achieve task-specific tuning. Further, the work on adapters, as integrated into AdapterHub, illustrates how modular adaptations can be effectively applied in practice, extending the utility and accessibility of large pre-trained models across varied NLP tasks without the extensive computational overhead traditionally required.
+
+
+
+
+\section{Methodology}
+\subsection{Project Approach}
+Detailed description of the three main areas of the project.
+\begin{itemize}
+    \item Adapter Development: Process of building adapters for ACL-ARC and SCIERC tasks.
+    \item Experimentation: Methods for testing different adapter architectures and configurations.
+    \item Literature Expansion: Process for identifying and reporting on potential RoBERTa fine-tuned task candidates.
+\end{itemize}
+\subsection{Data Sources}
+Description of datasets and corpus used, including data preparation and access.
+
+
+\section{Architecture}
+
+\subsection{Stages of Model Training}
+
+\subsubsection{Initial Pre-Training}
+Initial pre-training refers to the first phase where models like BERT and RoBERTa are trained on large, diverse datasets sourced from books, websites, and other general domains. This stage aims to develop a broad understanding of language by:
+\begin{itemize}
+    \item \textbf{General Language Understanding:} Training on a wide array of topics to develop versatile capabilities in syntax, semantics, and basic contextual relationships.
+    \item \textbf{Masked Language Modeling (MLM) and Next Sentence Prediction (NSP):} These tasks (NSP in BERT's case) help the model learn a deep understanding of language structure and continuity.
+\end{itemize}
+The outcome is a robust model capable of general language tasks, which forms a foundation for more specialized training.
+
+\paragraph{RoBERTa Architecture and Encoder}
+RoBERTa (Robustly Optimized BERT Approach) builds upon the architecture of BERT, employing the transformer model architecture first described by Vaswani et al. (2017). It consists of a multi-layer bidirectional encoder, leveraging self-attention mechanisms that allow the model to weigh the importance of different words in a sentence, irrespective of their positional distance from each other.
+
+Key improvements in RoBERTa over BERT include:
+\begin{itemize}
+    \item \textbf{Training on more data:} RoBERTa is trained on a dataset that is ten times larger than BERT’s.
+    \item \textbf{Longer training time:} It undergoes more training iterations, allowing it to learn more complex patterns and dependencies.
+    \item \textbf{Optimized hyperparameters:} Adjustments to the model’s learning rate, batch size, and the removal of the next sentence prediction task, focusing solely on masked language modeling.
+    \item \textbf{Increased batch size and sequence length:} These changes enable RoBERTa to capture more nuanced contextual relationships.
+\end{itemize}
+These enhancements help RoBERTa achieve superior performance compared to BERT, particularly in tasks requiring deep language understanding.
+
+\subsubsection{Second Phase of Pre-Training}
+The second phase of pre-training, as discussed in works like Gururangan et al., 2020, continues the pre-training process on new data using the same unsupervised learning objectives, such as MLM (Masked Language Modeling). Through this unsupervised training, the internal weights and embeddings of the model are subtly shifted to better represent the linguistic features and patterns found in the new data, enhancing its understanding and responsiveness to similar types of data. It does not necessarily involve adding new layer and this pre-training can be, for example, domain-specific adaptation or some sort of task-specific optimization. 
+
+\begin{itemize}
+    \item \textbf{Domain (DAPT) and Task (TAPT) Adaptation:} This phase continues the MLM training on texts that are domain-specific and/or closely related to the specific tasks for which the model will be fine-tuned. For example, if the final task involves legal judgment prediction, the model might be pre-trained further on legal rulings and related documents.
+    \item \textbf{Enhanced Contextual Understanding:} By focusing on narrower datasets, the model's embeddings and weights are fine-tuned to align closely with specialized vocabulary and concepts, thereby improving performance on closely related downstream tasks.
+\end{itemize}
+This targeted pre-training is crucial for aligning the model's capabilities more precisely with the nuances of both the domain and the specific tasks, thereby bridging the gap between general linguistic abilities and specialized requirements.
+
+\subsubsection{From Pre-Training to Fine-Tuning for Specific Tasks}
+
+Pre-training of models involves learning from large amounts of text data without specific input-output mapping. These unsupervised learning tasks help models develop generalizable language skills that are not tailored to any specific task but provide a broad understanding of language.
+
+Once a model has undergone the phases of pre-training, it can be adapted for specific tasks using supervised learning, which involves training with labeled data that provide explicit examples of input-output pairs:
+
+\begin{itemize}
+    \item \textbf{Adding Task-Specific Heads:} Depending on the task—be it classification, question answering, or any other—a specialized head is added to (or modified in) the model. This head is typically a lightweight neural network layer (like a linear or logistic regression layer) tailored to the output requirements of the task.
+    \item \textbf{Fine-Tuning on Task-Specific Data:} The entire model (or selective few layers), along with the newly added task-specific head, is fine-tuned on a labeled dataset specific to the task. This step ensures that the model not only understands the language and domain but also the particular way in which it needs to process and output data for the task. Note, by first conducting DAPT or TAPT, the model becomes more familiar with the types of texts and context it will encounter in the task. This pre-adaptation helps in dealing with domain-specific language challenges and make the most out of available data in both unlabeled and labeled forms.
+    \item \textbf{Model Calibration:} This final tuning helps calibrate the model’s responses, fine-tuning the interaction between the base model and the task-specific head to optimize performance, manage biases, and handle edge cases specific to the task.
+\end{itemize}
+This adaptation phase is critical for transforming a broadly capable model into a highly specialized tool tailored to perform specific, often critical, NLP tasks efficiently and with high accuracy.
+
+
+\subsubsection{More Efficient Pre-training and Fine-tuning: Adapter Methods}
+Adapter methods enhance the efficiency of fine-tuning pre-trained models for specific tasks by introducing small, trainable modules called adapters. These adapters are inserted into transformer models, allowing for targeted modifications without the need to retrain the entire model.
+
+\paragraph{Integration into Pre-Trained Models:}
+Adapters are essentially compact feed-forward neural networks placed between the layers of a transformer model. They are designed to be:
+\begin{itemize}
+    \item \textbf{Low-impact:} They add only a minimal number of trainable parameters, preserving the core pre-trained parameters and the model's foundational strengths.
+    \item \textbf{Highly modular:} Each adapter can be independently trained, enabling the model to adapt to various tasks or domains without interference, supporting diverse applications simultaneously.
+\end{itemize}
+
+\paragraph{Training Adapters:}
+The training regimen for adapters focuses on:
+\begin{itemize}
+    \item \textbf{Isolated Parameter Adjustment:} Only the adapter’s parameters are updated, with the rest of the model's parameters remaining unchanged. This minimizes catastrophic forgetting and expedites the adaptation process.
+    \item \textbf{Task-Specific Adaptation:} Adapters tailor the model’s processing to the requirements of specific tasks, allowing the model to leverage its broad language understanding while performing specialized functions.
+\end{itemize}
+
+\paragraph{Advantages of Using Adapters:}
+Adapters provide several benefits:
+\begin{itemize}
+    \item \textbf{Efficiency:} They reduce the computational and memory overhead required for traditional full model fine-tuning, ideal for resource-constrained environments.
+    \item \textbf{Flexibility:} The modular nature of adapters allows a foundational model to be adapted for multiple tasks by exchanging or stacking different adapters without complete retraining.
+    \item \textbf{Scalability:} Adapters facilitate the scalable application of large models across varied tasks and languages with minimal modifications.
+\end{itemize}
+
+\paragraph{Practical Applications:}
+Adapters have been effectively applied in various NLP tasks such as sentiment analysis, named entity recognition, and machine translation, offering quick deployment and configurability for both academic and industrial applications.
+
+\paragraph{Integration with Training Processes:}
+Adapters complement both continued pre-training and task-specific fine-tuning by enhancing performance and efficiency:
+\begin{itemize}
+    \item \textbf{Enhanced Specialization:} Following continued pre-training, adapters can further fine-tune models for specific tasks or performance characteristics while preserving domain-specific training across multiple tasks.
+    \item \textbf{Reduced Computational Overhead:} By training only adapters and not the entire model, the resource requirements are significantly lower, enabling deployment in resource-limited settings.
+    \item \textbf{Rapid Experimentation and Deployment:} The adaptable nature of adapters allows for quick modifications and faster model deployment across various tasks.
+\end{itemize}
+
+\paragraph{Integration Strategy:}
+While adapters do not necessarily replace the need for fine-tuning or continued pre-training, they provide an efficient and flexible alternative or complementary technique to achieve similar benefits, optimizing for specific tasks through quick, customizable refinements.
+
+
+\section{Experiment Setup}
+\subsection{Experimental Design}
+Outline the design of experiments, including control setups.
+\subsection{Metrics for Evaluation}
+Define how the performance will be measured and compared.
+\subsection{Tools and Technologies Used}
+List of software, tools, and technologies utilized in the project.
+
+\section{Results and Discussion}
+\subsection{Findings}
+Present the results from the experiments.
+\subsection{Comparison}
+Compare the adapter performance with full fine-tuning results.
+\subsection{Interpretation}
+Discuss the implications of the results.
+
+\section{Extended Goals and Further Contributions}
+\subsection{Additional Adapters}
+Building a general adapter for the CS domain and others.
+\subsection{Ablation Study}
+Insights from the performance impact of different configurations.
+\subsection{AdapterFusion and MerA}
+Exploration of knowledge transfer techniques.
+
+\section{Challenges and Limitations}
+\subsection{Obstacles Encountered}
+Discuss any issues faced during the project.
+\subsection{Limitations of the Study}
+Acknowledge any limitations in scope or execution.
+
+\section{Conclusion}
+\subsection{Summary of Findings}
+Recap the main findings and their significance.
+\subsection{Impact of the Project}
+Discuss how this project advances the field.
+
+\section{Future Work}
+\subsection{Suggestions for Future Research}
+Propose areas for further investigation and development.
+
+\section{References}
+\subsection{Cited Works}
+List all sources referenced throughout the document in a consistent format.
+
+\section{Appendices}
+\subsection{Additional Materials}
+Any supplementary material relevant to the project.
+
+\end{document}

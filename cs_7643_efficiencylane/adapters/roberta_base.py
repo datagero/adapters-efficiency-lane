@@ -33,10 +33,18 @@ config = RobertaConfig.from_pretrained(
     # classifier_dropout=0.1    # Additional dropout in the classification head
 )
 
-model_variant = './mlm_model'
-# model_variant = model_name
+model_variant = model_name
+# model_variant = './mlm_model'
+# model_variant = "allenai/dsp_roberta_base_tapt_citation_intent_1688" 
 
 model = RobertaForSequenceClassification.from_pretrained(model_variant, config=config)#.to(device)
+
+# Test, using off-the-shelf transformer model
+# from transformers import AutoModel, AutoTokenizer 
+# model = AutoModel.from_pretrained(model_name)
+# tokenizer = AutoTokenizer.from_pretrained(model_name)
+# inputs = tokenizer("Hello world!", return_tensors="pt")
+# outputs = model(**inputs)
 
 # model.eval()
 model.to(torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
