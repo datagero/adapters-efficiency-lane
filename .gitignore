@@ -92,6 +92,7 @@ poetry.lock
 
 .DS_Store
 
+paper_draft/
 
 # Latex
 *.aux
