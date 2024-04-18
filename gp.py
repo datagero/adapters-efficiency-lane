@@ -143,7 +143,7 @@ def train_task(dataset, model_name, model_type, num_labels, ft_lr=2e-5, ad_lr=5e
     #parallel-> par_seq_bn
     #houlsby+inv -> double_seq_bn_inv
     #pfeiffer+inv-> seq_bn_inv
-    adapter_model.add_adapter(adapter_name, config="seq_bn")
+    adapter_model.add_adapter(adapter_name, config="double_seq_bn")
 
     # Add a matching classification head
     adapter_model.add_classification_head(
