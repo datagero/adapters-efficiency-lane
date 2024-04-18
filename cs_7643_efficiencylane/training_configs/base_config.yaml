@@ -1,0 +1,19 @@
+# Base configuration file with common settings
+
+training_args:
+  logging_strategy: 'epoch'
+  evaluation_strategy: 'epoch'
+  save_strategy: 'epoch'
+  overwrite_output_dir: true
+  remove_unused_columns: true
+  load_best_model_at_end: true
+  metric_for_best_model: 'eval_loss'
+  output_dir: null # Predefine, to be updated by trials
+
+hydra:
+  run:
+    dir: .
+  job:
+    chdir: false
+
+base_output_dir: ./training_output

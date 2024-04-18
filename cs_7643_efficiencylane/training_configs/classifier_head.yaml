@@ -1,0 +1,15 @@
+training_args:
+  output_dir: './results'
+  num_train_epochs: 10
+  per_device_train_batch_size: 16
+  per_device_train_batch_size: 8 #Default value
+  learning_rate: 2e-5
+  warmup_steps: 500
+  logging_dir: './logs'
+  evaluation_strategy: 'steps'
+  save_strategy: 'steps'
+  logging_steps: 100
+  eval_steps: 500
+  save_steps: 500
+  load_best_model_at_end: true
+  metric_for_best_model: 'eval_macro_f1'

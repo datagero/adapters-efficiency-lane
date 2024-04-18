@@ -1,0 +1,84 @@
+{
+    "data": [
+      {
+        "domain": "BIOMED",
+        "tasks": [
+          {
+            "task_name": "CHEMPROT",
+            "label_type": "relation classification",
+            "dataset": {
+              "train_labeled": 4169,
+              "train_unlabeled": null,
+              "dev": 2427,
+              "test": 3469,
+              "classes": 13
+            },
+            "performance": {
+              "ROBERTA": 81.9,
+              "DAPT": 84.2,
+              "TAPT": 82.6,
+              "DAPT_TAPT": 84.4
+            }
+          },
+          {
+            "task_name": "RCT",
+            "label_type": "abstract sent. roles",
+            "dataset": {
+              "train_labeled": 18040,
+              "train_unlabeled": null,
+              "dev": 30212,
+              "test": 30135,
+              "classes": 5
+            },
+            "performance": {
+              "ROBERTA": 87.2,
+              "DAPT": 87.6,
+              "TAPT": 87.7,
+              "DAPT_TAPT": 87.8
+            }
+          }
+        ]
+      },
+      {
+        "domain": "CS",
+        "tasks": [
+          {
+            "task_name": "ACL-ARC",
+            "label_type": "citation intent",
+            "dataset": {
+              "train_labeled": 1688,
+              "train_unlabeled": null,
+              "dev": 114,
+              "test": 139,
+              "classes": 6
+            },
+            "performance": {
+              "ROBERTA": 63.0,
+              "DAPT": 75.4,
+              "TAPT": 67.4,
+              "DAPT_TAPT": 75.6
+            }
+          },
+          {
+            "task_name": "SCIERC",
+            "label_type": "relation classification",
+            "dataset": {
+              "train_labeled": 3219,
+              "train_unlabeled": null,
+              "dev": 455,
+              "test": 974,
+              "classes": 7
+            },
+            "performance": {
+              "ROBERTA": 77.3,
+              "DAPT": 80.8,
+              "TAPT": 79.3,
+              "DAPT_TAPT": 81.3
+            }
+          }
+        ]
+      },
+      // Additional domain data would be structured similarly...
+    ]
+  }
+  
