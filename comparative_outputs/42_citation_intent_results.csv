@@ -1,0 +1,5 @@
+Seed,Dataset,Model,Fine Tune Result,Adapter Result
+42,citation_intent,base,0.6955874191168308,0.642640352146831
+42,citation_intent,dapt,0.7425369075,0.704828773001042
+42,citation_intent,tapt,0.6620448517000241,0.6412393162393163
+42,citation_intent,dapt_tapt,0.7167237032358612,0.7227850139550122
