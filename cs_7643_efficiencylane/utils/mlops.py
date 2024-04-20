@@ -1,18 +1,27 @@
+import time
 import optuna
+from retry import retry
 from transformers import TrainingArguments
+
+@retry(KeyError, delay=3, tries=2)
+def load_study_with_retry(study_name, storage):
+    """
+    Retry loading the study with a delay of 3 seconds, up to 2 attempts.
+    """
+    return optuna.load_study(study_name=study_name, storage=storage)
 
 def create_or_load_study(study_name, storage, direction='minimize'):
     """
     Create a new Optuna study or load an existing one from storage.
     """
-    try:
-        # Try loading the study
-        study = optuna.load_study(study_name=study_name, storage=storage)
-        print(f"Study '{study_name}' loaded from storage.")
-    except KeyError:
-        # If the study does not exist, create a new one
-        study = optuna.create_study(study_name=study_name, storage=storage, direction=direction)
-        print(f"Study '{study_name}' created.")
+    # try:
+    #     # Try loading the study
+    #     study = load_study_with_retry(study_name, storage)
+    #     print(f"Study '{study_name}' loaded from storage.")
+    # except KeyError:
+    # If the study does not exist, create a new one
+    study = optuna.create_study(study_name=study_name, storage=storage, direction=direction, load_if_exists=True)
+    print(f"Study '{study_name}' created or reloaded.")
 
     return study
 
@@ -27,15 +36,24 @@ def map_param_to_arg_names(param_name):
     }
     return mapping.get(param_name, [param_name])
 
-def build_training_arguments_for_trial(trial, cfg):
+def build_study_output_dir(base_output_dir, study_name, trial_number, seed):
     """
-    Build TrainingArguments for a given Optuna trial using the provided configuration.
+    Build the output directory for a given Optuna study using the provided configuration.
+    """
+    if seed:
+        return f"{base_output_dir}/{study_name}/trial_{trial_number}/seed_{seed}/"
+    else:
+        return f"{base_output_dir}/{study_name}/trial_{trial_number}/"
+
+def get_optuna_suggested_params(optuna_search_space, trial):
+    """
+    Get suggested hyperparameter values for a given Optuna trial using the provided configuration.
     """
     # Dictionary to hold suggested hyperparameter values
     suggested_params = {}
     
     # Dynamically suggest values for all defined hyperparameters
-    for param_name, param_config in cfg.optuna_search_space.items():
+    for param_name, param_config in optuna_search_space.items():
         if 'low' in param_config and 'high' in param_config:
             # Suggest a value using loguniform for continuous parameters
             suggested_value = trial.suggest_loguniform(param_name, param_config.low, param_config.high)
@@ -50,16 +68,29 @@ def build_training_arguments_for_trial(trial, cfg):
         for arg_name in arg_names:
             suggested_params[arg_name] = suggested_value
 
-    # Setup output directory
-    study_name = trial.study.study_name
-    output_dir = f"{cfg.base_output_dir}/{study_name}/trial_{trial.number}/"
+    return suggested_params
+
+def build_training_arguments_for_trial(trial, cfg, seed=None):
+    """
+    Build TrainingArguments for a given Optuna trial using the provided configuration.
+    """
+    if 'optuna_search_space' in cfg:
+        suggested_params = get_optuna_suggested_params(cfg.optuna_search_space, trial)
+    else:
+        suggested_params = {}
 
     # Initialize training arguments using both predefined and suggested parameters
     training_kwargs = cfg.training_args.copy()  # Ensures original is not modified
     training_kwargs.update({
-        'output_dir': output_dir,
+        'output_dir': build_study_output_dir(cfg.base_output_dir, trial.study.study_name, trial.number, seed),
         **suggested_params
     })
+
+    if seed:
+        training_kwargs['seed'] = seed
+
+    # Pretty print training_kwargs
+    # print(f"Training arguments for trial {trial.number} with seed {seed}:\n{training_kwargs}")
 
     # Create and return TrainingArguments
     return TrainingArguments(**training_kwargs)

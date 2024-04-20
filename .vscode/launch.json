@@ -14,6 +14,31 @@
                 "PYTHONPATH": "${workspaceFolder}/cs_7643_efficiencylane"
             },
             "justMyCode": false
-        }
+        },
+        {
+            "name": "Debug Classifier Head Training",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/cs_7643_efficiencylane/demo/finetuning/classifier_head.py",
+            "args": ["roberta-base"],
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/cs_7643_efficiencylane"
+            },
+            "justMyCode": false
+        },
+        {
+            "name": "Debug Adapter Training",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/cs_7643_efficiencylane/demo/adapters/new_adapter.py",
+            "args": ["roberta-base"],
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/cs_7643_efficiencylane"
+            },
+            "justMyCode": false
+        }  
+
     ]
 }

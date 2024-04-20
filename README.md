@@ -68,3 +68,12 @@ These are stored in the `cs_7643_efficiencylane/demo/adapters` folder. We train 
 
 ### Execution
 To execute this demo, ensure the model, adapter, and training configurations are correctly set up. The training process is managed by the `AdapterTrainer`, which focuses solely on adapting the newly added components. After training, the adapter can be saved locally or pushed to the Adapter-Hub for broader accessibility.
+
+
+## 3. Logs and Visualisation
+Web version of optuna dashboard is more complete than VSCode version:
+optuna-dashboard sqlite:///db.sqlite3
+
+To delete experiments from optuna:
+sqlite3 db.sqlite3
+sqlite> DELETE FROM studies WHERE study_name LIKE 'cs_roberta_base_training_default%';

@@ -25,7 +25,7 @@ dataset = loader.load_dataset(overwrite=False)
 # Note, we build on top of allenai/cs_roberta_base which is already dapt pre-trained
 # ======================================================
 model = RobertaForMaskedLM.from_pretrained('allenai/cs_roberta_base')
-model.to(torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
+model.to(device)
 
 training_kwargs = yaml_utils.load_training_args_from_yaml('cs_7643_efficiencylane/training_configs/continue_pretraining.yaml')
 training_args = TrainingArguments(**training_kwargs)

@@ -1,6 +1,7 @@
 # Base configuration file with common settings
 
 training_args:
+  seed: 42
   logging_strategy: 'epoch'
   evaluation_strategy: 'epoch'
   save_strategy: 'epoch'
@@ -9,6 +10,7 @@ training_args:
   load_best_model_at_end: true
   metric_for_best_model: 'eval_loss'
   output_dir: null # Predefine, to be updated by trials
+  disable_tqdm: true
 
 hydra:
   run:
