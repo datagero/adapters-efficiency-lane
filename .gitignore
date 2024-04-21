@@ -1,4 +1,5 @@
-training_output/
+# training_output/
+training_output/*v03
 final_adapter/
 archive/
 data/
