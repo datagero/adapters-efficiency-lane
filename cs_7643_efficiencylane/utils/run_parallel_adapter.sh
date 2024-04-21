@@ -17,7 +17,8 @@ NUM_RUNS=1
 MODEL_VARIANT=$1
 DATASET_NAME=$2
 ADAPTER_CONFIG_NAME=$3
-STUDY_SUFFIX=$4
+CONFIG_NAME=$4
+STUDY_SUFFIX=$5
 
 for i in $(seq 1 $NUM_RUNS)
 do
@@ -26,7 +27,9 @@ do
         "$MODEL_VARIANT" \
         --dataset_name "$DATASET_NAME" \
         --adapter_config_name "$ADAPTER_CONFIG_NAME" \
-        --study_suffix "$STUDY_SUFFIX" &
+        --config_name "$CONFIG_NAME" \
+        --study_suffix "$STUDY_SUFFIX" \
+        --job_sequence $i &
     sleep 2 # Sleep for 2 seconds before starting the next job
 done
 

@@ -6,7 +6,7 @@ authors = ["datagero <datagero@outlook.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "3.8.19"
 adapters = "^0.1.2"
 torch = "^2.2.2"
 datasets = "^2.18.0"

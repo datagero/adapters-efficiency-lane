@@ -3,6 +3,9 @@ import optuna
 from retry import retry
 from transformers import TrainingArguments
 
+def check_study_exists(storage, study_name):
+    return study_name in optuna.study.get_all_study_names(storage)
+
 @retry(KeyError, delay=3, tries=2)
 def load_study_with_retry(study_name, storage):
     """

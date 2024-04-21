@@ -9,8 +9,6 @@ training_args:
 
 optuna:
   n_trials: 2 # n_trials per experiment run (note, we could run multiple experiments in parallel to speed up the search process)
-  n_seeds : 5
-  direction: minimize
 
 output_dir: ./training_output
 

@@ -1,14 +1,15 @@
 training_args:
   # The NULLs are placeholders for the user to fill in by optuna hyperparameter search
   # This will be replaced in next iteration by a function
-  num_train_epochs: 5
+  num_train_epochs: 2
   learning_rate: null
   per_device_train_batch_size: null
   per_device_eval_batch_size: null
   disable_tqdm: false
 
 optuna:
-  n_trials: 10 # increase this to 10 or so
+  n_trials: 2 # increase this to 10 or so
+  n_seeds : 2
 
 optuna_search_space:
   learning_rate:

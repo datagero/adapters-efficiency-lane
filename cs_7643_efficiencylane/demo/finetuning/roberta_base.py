@@ -4,7 +4,7 @@ import torch
 
 # Our built utilities
 from utils import yaml_utils, mlops, compute_metrics
-from data_loaders.citation_intent_data_loader import CitationIntentDataLoader
+from data_loaders.citation_intent_data_loader import CSTasksDataLoader
 
 # ======================================================
 # Set-up and Load Data
@@ -12,7 +12,7 @@ from data_loaders.citation_intent_data_loader import CitationIntentDataLoader
 model_name = 'roberta-base'
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-loader = CitationIntentDataLoader(model_name="roberta-base",
+loader = CSTasksDataLoader(model_name="roberta-base",
                                   dataset_name="citation_intent",
                                   path=f"data/citation_intent/",
                                   checkpoint_path="data/citation_intent/processed_dataset.pt")

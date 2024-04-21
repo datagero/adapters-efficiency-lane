@@ -49,7 +49,7 @@ python download_datasets.py
 These are stored in the `cs_7643_efficiencylane/demo/finetuning` folder. This demo illustrates how to replicate the results of continued pretraining using RoBERTa models. It leverages various utilities and data loaders developed as part of the project.
 
 ### Components
-- **Data Loader**: Loads the `citation_intent` dataset using the `CitationIntentDataLoader`.
+- **Data Loader**: Loads the `citation_intent` dataset using the `CSTasksDataLoader`.
 - **Configuration**: Utilizes a `RobertaConfig` with specified dropout probabilities and label count based on the dataset.
 - **Model Training**: Executes training using different pretrained model variants such as `allenai/dsp_roberta_base_tapt_citation_intent_1688` to compare performance impacts.
 - **Evaluation**: Computes the Macro-F1 score as the primary evaluation metric, highlighting the model's classification performance.

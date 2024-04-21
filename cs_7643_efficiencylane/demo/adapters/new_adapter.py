@@ -15,7 +15,7 @@ from transformers import TextClassificationPipeline
 from hydra import initialize, compose
 
 # Our built utilities
-from data_loaders.citation_intent_data_loader import CitationIntentDataLoader
+from data_loaders.citation_intent_data_loader import CSTasksDataLoader
 from utils import compute_metrics, optuna_objectives
 
 def get_model_and_data(model_variant, dataset_name, adapter_config_name):
@@ -24,7 +24,7 @@ def get_model_and_data(model_variant, dataset_name, adapter_config_name):
     # ======================================================
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    loader = CitationIntentDataLoader(model_name="roberta-base",
+    loader = CSTasksDataLoader(model_name="roberta-base",
                                     dataset_name=dataset_name,
                                     path=f"data/{dataset_name}/",
                                     checkpoint_path=f"data/{dataset_name}/processed_dataset.pt")
@@ -81,16 +81,20 @@ if __name__ == "__main__":
     parser.add_argument('--adapter_config_name', type=str, default='seq_bn', help='the name of the adapter configuration file')
     parser.add_argument('--study_suffix', type=str, default='default_test', help='the suffix to add to the study name')
     parser.add_argument('--config_path', type=str, default='../../training_configs', help='the path to training configuration files')
-    parser.add_argument('--config_name', type=str, default='adapter_citation_intent', help='the name of the configuration file')
+    parser.add_argument('--config_name', type=str, default='adapter_citation_intent_test', help='the name of the configuration file')
+    parser.add_argument('--job_sequence', type=int, default=1, help='the number of job for parallel runs (default: 1)')
     # To add support for different databases
     args = parser.parse_args()
 
     model_variant = args.model_variant
-    adapter_config_name = args.adapter_config_name
     dataset_name = args.dataset_name
+    adapter_config_name = args.adapter_config_name
     config_path = args.config_path
     config_name = args.config_name
     study_suffix = args.study_suffix
+    job_sequence = args.job_sequence
+
+    logger.info(f"Inputs: {model_variant}, {dataset_name}, {adapter_config_name}, {config_path}, {config_name}, {study_suffix}")
 
     # print(f"Starting training for Model Variant: {model_variant} with Config: {config_name} loaded from {config_path}")
     logger.info(f"Starting training for Model Variant: {model_variant} with Config: {config_name} loaded from {config_path}")
@@ -104,7 +108,7 @@ if __name__ == "__main__":
     study_name = f"{save_model_name}_training_{study_suffix}"
 
     # Run in a single thread. You could run this file multiple times for the same study, Optuna would manage parallelism:
-    optuna_objectives.run_study_experiments(cfg, model=model, dataset=dataset, study_name=study_name, training_type='adapter', parallelism=False)
+    optuna_objectives.run_study_experiments(cfg, model=model, dataset=dataset, study_name=study_name, trainer_type='adapter', job_sequence=job_sequence)
 
     # # Test the model
     # classifier = TextClassificationPipeline(model=model, tokenizer=loader.tokenizer, device=0)

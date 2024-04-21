@@ -11,18 +11,23 @@
 # kill <process_id>
 
 # Number of times to run the script in parallel
-NUM_RUNS=3
+NUM_RUNS=1
 
 # Define the model_variant argument
 MODEL_VARIANT=$1
-STUDY_SUFFIX=$2
+DATASET_NAME=$2
+CONFIG_NAME=$3
+STUDY_SUFFIX=$4
 
 for i in $(seq 1 $NUM_RUNS)
 do
     # Pass the model_variant argument to the Python script
     python cs_7643_efficiencylane/demo/finetuning/classifier_head.py \
         "$MODEL_VARIANT" \
-        --study_suffix "$STUDY_SUFFIX" &
+        --dataset_name "$DATASET_NAME" \
+        --config_name "$CONFIG_NAME" \
+        --study_suffix "$STUDY_SUFFIX" \
+        --job_sequence $i &
     sleep 2 # Sleep for 2 seconds before starting the next job
 done
 

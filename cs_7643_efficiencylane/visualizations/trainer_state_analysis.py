@@ -107,11 +107,11 @@ df.drop(columns=['path'], inplace=True)
 df.head()
 
 abbreviations = OrderedDict([
-    ('roberta-base_training_base_v01', 'ROBERTA'),
-    ('cs_roberta_base_training_base_v02', 'DAPT'),
-    ('dsp_roberta_base_dapt_cs_tapt_citation_intent_1688_training_base_v01', 'DAPT_TAPT'),
-    ('dsp_roberta_base_tapt_citation_intent_1688_training_base_v01', 'TAPT'),
-    ('mlm_model_training_base_v01', 'MLM-Base'),
+    ('roberta-base_citation_intent_training_base_v01', 'ROBERTA'),
+    ('cs_roberta_base_citation_intent_training_base_v02', 'DAPT'),
+    ('dsp_roberta_base_dapt_cs_tapt_citation_intent_1688_citation_intent_training_base_v01', 'DAPT_TAPT'),
+    ('dsp_roberta_base_tapt_citation_intent_1688_citation_intent_training_base_v01', 'TAPT'),
+    ('mlm_model_citation_intent_training_base_v01', 'MLM-Base'),
     ('roberta-base_citation_intent_pfeiffer_training_base_v01', 'ROBERTA_PFEIFFER'),
     ('roberta-base_citation_intent_seq_bn_training_base_v01', 'ROBERTA_SEQ_BN'),
     ('roberta-base_citation_intent_double_seq_bn_training_base_v01', 'ROBERTA_DOUBLE_SEQ_BN'),
@@ -142,6 +142,10 @@ df_grouped = df.groupby(['short_study'])['av_trial_macro_f1'].mean().reset_index
 df = df.merge(df_grouped, how='left', on=['short_study'], suffixes=('', '_max'))
 df.rename(columns={'av_trial_macro_f1_max': 'av_study_macro_f1'}, inplace=True)
 
+# Make common training_loss column based on train_loss and loss
+df['train_loss'] = df['train_loss'].fillna(df['loss'])
+
+
 # Add benchmarks for adapters
 comparison_results_task.update({
     'ROBERTA_PFEIFFER': df[df['short_study'] == 'TAPT']['av_study_macro_f1'].mean(),
@@ -150,9 +154,66 @@ comparison_results_task.update({
     'DAPT_SEQ_BN': df[df['short_study'] == 'DAPT_TAPT']['av_study_macro_f1'].mean(),
     'DAPT_DOUBLE_SEQ_BN': df[df['short_study'] == 'DAPT_TAPT']['av_study_macro_f1'].mean()})
 
+adapters = ['ROBERTA_PFEIFFER', 'ROBERTA_SEQ_BN', 'ROBERTA_DOUBLE_SEQ_BN', 'DAPT_SEQ_BN', 'DAPT_DOUBLE_SEQ_BN']
+
+# Filter the data based on whether 'trial' values are in 'adapters'
+in_adapters = df['short_study'].isin(adapters)
+dataframes = {
+    'Adapters': df[in_adapters],
+    'Continued Pretraining': df[~in_adapters]
+}
+
+
+# Create figures for each type of loss
+for loss_type in ['eval_loss', 'train_loss']:
+    plt.figure(figsize=(20, 6))  # Larger figure size for side by side subplots
+
+    n_subplot = 1
+    for key, dataframe in dataframes.items():
+
+        # First subplot for trials in adapters
+        plt.subplot(1, 2, n_subplot)
+        sns.boxplot(data=dataframe, x='trial', y=loss_type, hue='study')
+        plt.title(f'Boxplot of {loss_type} for {key}')
+        plt.xlabel('Trial')
+        plt.ylabel(loss_type.capitalize())
+        plt.xticks(rotation=45)
+
+        n_subplot += 1
+
+    plt.tight_layout()  # Adjust layout to prevent overlap
+    plt.savefig(f'resources/{loss_type}_across_seeds_comparison.png')
+    plt.show()
+
 
 # Let's assume df is the DataFrame from the previous context
 # Generate some visualizations for the DataFrame
+
+
+for adapter in adapters:
+    plt.figure(figsize=(20, 6))  # Larger figure size to accommodate two plots side by side
+
+    # First subplot for evaluation loss
+    plt.subplot(1, 2, 1)
+    sns.boxplot(data=df[df['trial'] == adapter], x='trial', y='eval_loss', hue='study')
+    plt.title(f'Boxplot of Evaluation Loss for {adapter}')
+    plt.xlabel('Trial')
+    plt.ylabel('Evaluation Loss')
+    plt.xticks(rotation=45)
+
+    # Second subplot for training loss
+    plt.subplot(1, 2, 2)
+    sns.boxplot(data=df[df['trial'] == adapter], x='trial', y='train_loss', hue='study')
+    plt.title(f'Boxplot of Training Loss for {adapter}')
+    plt.xlabel('Trial')
+    plt.ylabel('Training Loss')
+    plt.xticks(rotation=45)
+
+    plt.tight_layout()  # Adjust layout to prevent overlap
+    plt.savefig(f'resources/loss_across_seeds_{adapter}.png')
+    plt.show()
+
+
 
 # Set the aesthetic style of the plots
 sns.set_style("whitegrid")

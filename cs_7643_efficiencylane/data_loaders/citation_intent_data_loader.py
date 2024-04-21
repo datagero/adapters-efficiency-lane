@@ -4,8 +4,12 @@ import torch
 from datasets import load_dataset
 from transformers import RobertaTokenizer, DataCollatorForLanguageModeling
 
-class CitationIntentDataLoader:
+class CSTasksDataLoader:
     def __init__(self, model_name, dataset_name, path, checkpoint_path):
+
+        if dataset_name not in ['citation_intent', 'sciie']:
+            raise ValueError("Invalid dataset name. Supported datasets: citation_intent, sciie")
+
         self.model_name = model_name
         self.dataset_name = dataset_name
         self.path = path
@@ -43,8 +47,11 @@ class CitationIntentDataLoader:
 
         print("Processing #{} encoded labels: {}".format(self.num_labels, self.label_encoder))
 
-        dataset = dataset.map(self._encode_and_convert)
-
+        dataset = dataset.map(self._encode_batch)
+        dataset = dataset.map(self._convert_labels_to_integers)
+        # The transformers model expects the target class column to be named "labels"
+        dataset = dataset.rename_column(original_column_name="label", new_column_name="labels")
+        
         return dataset
 
     def _extract_labels(self, file_path):
@@ -55,7 +62,7 @@ class CitationIntentDataLoader:
                 labels.add(data["label"])
         return labels
 
-    def _encode_and_convert(self, batch):
+    def _encode_batch(self, batch):
         return self.tokenizer(batch["text"], max_length=80, truncation=True, padding="max_length")
 
     def _convert_labels_to_integers(self, example):
