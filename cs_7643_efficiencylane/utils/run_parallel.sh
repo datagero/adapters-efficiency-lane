@@ -22,7 +22,7 @@ STUDY_SUFFIX=$4
 for i in $(seq 1 $NUM_RUNS)
 do
     # Pass the model_variant argument to the Python script
-    python cs_7643_efficiencylane/demo/finetuning/classifier_head.py \
+    python cs_7643_efficiencylane/demo/finetuning/finetuning.py \
         "$MODEL_VARIANT" \
         --dataset_name "$DATASET_NAME" \
         --config_name "$CONFIG_NAME" \

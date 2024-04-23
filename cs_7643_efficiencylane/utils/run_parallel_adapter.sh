@@ -10,7 +10,8 @@
 # pkill -P <parent_id>
 # kill <process_id>
 
-# Number of times to run the script in parallel
+# Number of times to run the script in parallel 
+# (i.e., enables Optuna trials in parallel)
 NUM_RUNS=1
 
 # Define the model_variant argument

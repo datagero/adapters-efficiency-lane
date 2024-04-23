@@ -1,7 +1,9 @@
+from env.logger_config import get_logger
+logger = get_logger()
+
 import time
 import optuna
 from retry import retry
-from transformers import TrainingArguments
 
 def check_study_exists(storage, study_name):
     return study_name in optuna.study.get_all_study_names(storage)
@@ -23,7 +25,8 @@ def create_or_load_study(study_name, storage, direction='minimize'):
     #     print(f"Study '{study_name}' loaded from storage.")
     # except KeyError:
     # If the study does not exist, create a new one
-    study = optuna.create_study(study_name=study_name, storage=storage, direction=direction, load_if_exists=True)
+    pruner = optuna.pruners.MedianPruner()
+    study = optuna.create_study(study_name=study_name, storage=storage, direction=direction, pruner=pruner, load_if_exists=True)
     print(f"Study '{study_name}' created or reloaded.")
 
     return study
@@ -57,9 +60,23 @@ def get_optuna_suggested_params(optuna_search_space, trial):
     
     # Dynamically suggest values for all defined hyperparameters
     for param_name, param_config in optuna_search_space.items():
+        
         if 'low' in param_config and 'high' in param_config:
-            # Suggest a value using loguniform for continuous parameters
-            suggested_value = trial.suggest_loguniform(param_name, param_config.low, param_config.high)
+            # Get data type of the parameter
+            param_type = param_config.type
+            if param_type == 'int':
+                # Suggest a value using quniform for integer parameters
+                suggested_value = trial.suggest_int(param_name, param_config.low, param_config.high)
+            elif param_type == 'float':
+                suggested_value = trial.suggest_float(param_name, param_config.low, param_config.high)
+            elif param_type == 'loguniform':
+                # Suggest a value using loguniform for continuous parameters
+                suggested_value = trial.suggest_loguniform(param_name, param_config.low, param_config.high)
+            elif param_type == 'uniform':
+                # Suggest a value using uniform for continuous parameters
+                suggested_value = trial.suggest_uniform(param_name, param_config.low, param_config.high)
+            else:
+                raise(ValueError(f"Unsupported parameter type: {param_type}"))
         elif 'values' in param_config:
             # Suggest a value using categorical for discrete parameters
             suggested_value = trial.suggest_categorical(param_name, param_config['values'])
@@ -71,11 +88,13 @@ def get_optuna_suggested_params(optuna_search_space, trial):
         for arg_name in arg_names:
             suggested_params[arg_name] = suggested_value
 
+    logger.info(f"Suggested hyperparameters for trial {trial.number}:\n{suggested_params}")
+
     return suggested_params
 
 def build_training_arguments_for_trial(trial, cfg, seed=None):
     """
-    Build TrainingArguments for a given Optuna trial using the provided configuration.
+    Build arguments for a TrainingArguments for a given Optuna trial using the provided configuration.
     """
     if 'optuna_search_space' in cfg:
         suggested_params = get_optuna_suggested_params(cfg.optuna_search_space, trial)
@@ -95,8 +114,8 @@ def build_training_arguments_for_trial(trial, cfg, seed=None):
     # Pretty print training_kwargs
     # print(f"Training arguments for trial {trial.number} with seed {seed}:\n{training_kwargs}")
 
-    # Create and return TrainingArguments
-    return TrainingArguments(**training_kwargs)
+    # Create and return arguments for TrainingArguments
+    return training_kwargs
 
 # Check final size of the adapter
 # !ls -lh final_adapter

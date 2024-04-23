@@ -17,11 +17,17 @@ optuna:
   # # v01 is maximize f1
   # direction: maximize
   # objective: f1
-  # v02 is minimize loss
+  ## v02 is minimize loss
   direction: minimize
   objective: loss
 
+  # v03 is with v02, all the same, essentially making sure v02 was set correctly for all models. -> ALSO no parallelism is used.
+    # v03 This is the final version for models
+  # v04 is with v02 testing minimize loss with -ve sign on optuna return
+  # v05 is with v02 but changing transformer search space
+  # v06 is with v01 same config as v05
 
+#TODO NOW: Make sure all the v03 models are run for 6 trials
 hydra:
   run:
     dir: .
