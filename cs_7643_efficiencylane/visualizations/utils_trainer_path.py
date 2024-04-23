@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import seaborn as sns
 
-trials_dict = {'adapter': 10, 'model': 6}
+trials_dict = {'adapter': 10, 'model': 5}
 seeds_dict = {'adapter': 5, 'model': 5}
 
 class TrainerUtilities:
@@ -33,8 +33,8 @@ class TrainerUtilities:
     def container_of_expected_runs(self, dataset="citation_intent", version="v01"):
 
         bash_commands_dict = {
-            f"roberta-base_{dataset}_training_base_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh roberta-base {dataset} classifier_head base_{version}",
-            f"cs_roberta_base_{dataset}_training_base_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh allenai/cs_roberta_base {dataset} classifier_head base_{version}",
+            f"roberta-base_{dataset}_training_model_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh roberta-base {dataset} finetuning model_{version}",
+            f"cs_roberta_base_{dataset}_training_model_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh allenai/cs_roberta_base {dataset} finetuning model_{version}",
             f"roberta-base_{dataset}_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh roberta-base {dataset} seq_bn adapter_{dataset} adapter_{version}",
             f"roberta-base_{dataset}_double_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh roberta-base {dataset} double_seq_bn adapter_{dataset} adapter_{version}",
             f"cs_roberta_base_{dataset}_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh allenai/cs_roberta_base {dataset} seq_bn adapter_{dataset} adapter_{version}",
@@ -43,14 +43,14 @@ class TrainerUtilities:
 
         if dataset == 'citation_intent':
             bash_commands_dict.update({
-                f"mlm_model_{dataset}_training_base_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh ./mlm_model {dataset} classifier_head base_{version}",
-                f"dsp_roberta_base_tapt_citation_intent_1688_{dataset}_training_base_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh allenai/dsp_roberta_base_tapt_citation_intent_1688 {dataset} classifier_head base_{version}",
-                f"dsp_roberta_base_dapt_cs_tapt_citation_intent_1688_{dataset}_training_base_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh allenai/dsp_roberta_base_dapt_cs_tapt_citation_intent_1688 {dataset} classifier_head base_{version}"
+                f"mlm_model_{dataset}_training_model_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh ./mlm_model {dataset} finetuning model_{version}",
+                f"dsp_roberta_base_tapt_citation_intent_1688_{dataset}_training_model_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh allenai/dsp_roberta_base_tapt_citation_intent_1688 {dataset} finetuning model_{version}",
+                f"dsp_roberta_base_dapt_cs_tapt_citation_intent_1688_{dataset}_training_model_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh allenai/dsp_roberta_base_dapt_cs_tapt_citation_intent_1688 {dataset} finetuning model_{version}"
             })
         if dataset == 'sciie':
             bash_commands_dict.update({
-                f"dsp_roberta_base_tapt_sciie_3219_{dataset}_training_base_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh allenai/dsp_roberta_base_tapt_sciie_3219 {dataset} classifier_head base_{version}",
-                f"dsp_roberta_base_dapt_cs_tapt_sciie_3219_{dataset}_training_base_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh allenai/dsp_roberta_base_dapt_cs_tapt_sciie_3219 {dataset} classifier_head base_{version}"
+                f"dsp_roberta_base_tapt_sciie_3219_{dataset}_training_model_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh allenai/dsp_roberta_base_tapt_sciie_3219 {dataset} finetuning model_{version}",
+                f"dsp_roberta_base_dapt_cs_tapt_sciie_3219_{dataset}_training_model_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh allenai/dsp_roberta_base_dapt_cs_tapt_sciie_3219 {dataset} finetuning model_{version}"
             })
 
         return bash_commands_dict
@@ -82,14 +82,28 @@ class TrainerUtilities:
 
     def get_in_scope_studies(self):
         study_dict = {}
-        for version in ["v01", "v02", "v03"]:
+        for version in ["v01"]:#, "v02", "v03", "v04", "v05", "v06"]:
             "Three versions for citation_intent dataset"
             study_dict.update(self.container_of_expected_runs(dataset="citation_intent", version=version))
 
-        for version in ["v02", "v03"]:
+        for version in ["v01"]:#v02", "v03", "v04", "v05", "v06"]:
             "Two versions for sciie dataset"
             study_dict.update(self.container_of_expected_runs(dataset="sciie", version=version))
-        return study_dict
+
+        # Models might stop being traind before adapters
+        in_scope = {}
+        for study_name, command in study_dict.items():
+            model_type = self.get_model_type(study_name)
+            version = study_name.split('_')[-1]
+            if version in ['v04', 'v05', 'v06']:
+                if model_type == 'model':
+                    continue
+                elif model_type == 'adapter' and 'mlm_model' in command:
+                    continue
+
+            in_scope[study_name] = command
+
+        return in_scope
 
     def get_all_trial_and_seed_paths(self, study_path):
         """
@@ -108,7 +122,7 @@ class TrainerUtilities:
 
     def get_model_type(self, study_name):
         adapter_match = re.search(r'_adapter_v(\d+)$', study_name)
-        base_match = re.search(r'_base_v(\d+)$', study_name)
+        base_match = re.search(r'_model_v(\d+)$', study_name)
 
         if adapter_match:
             return 'adapter'
@@ -155,15 +169,18 @@ class TrainerUtilities:
 
             
             if model_type in self.trials_dict:
-                # We expect 10 trials for any adapter version
+                # We expect 10 trials for any adapter version and 5 trials for any model version
                 expected_trials = self.trials_dict[model_type]
                 expected_seeds_per_trial = self.seeds_dict[model_type]
             else:
                 completion_check[study_name] = 'incomplete'
                 continue  # Skip further checks as the study name pattern does not match
 
+            # if study_name == "roberta-base_citation_intent_double_seq_bn_training_adapter_v01":
+            #     1==1
+
             # Check if the number of trials matches the expectation
-            if len(trials) != expected_trials:
+            if len(trials) > 0 and len(trials) % expected_trials != 0:
                 completion_check[study_name] = 'incomplete'
                 continue  # Skip further checks as the trial count does not match
 
@@ -203,13 +220,13 @@ class TrainerUtilities:
             if model_type not in self.trials_dict:
                 raise ValueError("Invalid model type")
             
-            if n_trials > self.trials_dict[model_type]:
+            if n_trials > self.trials_dict[model_type] and not n_trials % self.trials_dict[model_type] == 0:
                 raise ValueError("Invalid number of trials")
             return n_trials == self.trials_dict[model_type]
 
         completed_studies = []
         for study_name in self.optuna_studies:
-            if study_name.endswith('test'):
+            if study_name.endswith('test') or study_name.endswith('gold'):
                 continue
             study = self.load_optuna_study(study_name)
             trial_statuses = set([trial.state.name for trial in study.trials])
@@ -248,6 +265,8 @@ class TrainerAnalytics(TrainerUtilities):
 
         for study_name, trial_dict in trial_paths_dict.items():
             model_type = self.get_model_type(study_name)
+            # if model_type == 'gold':
+            #     continue
             for trial, seed_paths in trial_dict.items():
                 for seed_path in seed_paths:
 
@@ -298,17 +317,15 @@ class TrainerAnalytics(TrainerUtilities):
         ])
 
         # Check unique model_variantsß
-        unique_model_variants = df_training['model_variant'].unique()
-        assert len(unique_model_variants) - 1 == len(abbreviations), "Mismatch in model variants and abbreviations"
-        # Find differences
-        set(unique_model_variants) - set(abbreviations.keys())
+        # unique_model_variants = df_training['model_variant'].unique()
+        # assert len(unique_model_variants) == len(abbreviations), "Mismatch in model variants and abbreviations"
+        # # Find differences
+        # set(unique_model_variants) - set(abbreviations.keys())
 
         df_training['short_study'] = df_training['model_variant'].map(abbreviations)
         df_evaluation['short_study'] = df_evaluation['model_variant'].map(abbreviations)
 
-
-
-
+        # Define the columns to keep and merge on
         common = ['study', 'short_study', 'model_variant', 'model_type', 'dataset_name', 
                       'trial', 'seed', 'epoch', 'adapter_config_name', 'config_name', 'version']
         train_cols = ['train_loss']
@@ -322,7 +339,7 @@ class TrainerAnalytics(TrainerUtilities):
 
         # Select the trials for which to do the study
         # Ignore first trial for each study, since the model is still adapting
-        df = df[df['trial'] != 0]
+        # df = df[df['trial'] != 0]
 
         # For model_type = Model, just show first 2 trials as these are run before major adjustments
         # Eval Loss is shown to increase and Train Loss to decrease significantly on higher trials
@@ -343,29 +360,52 @@ class TrainerAnalytics(TrainerUtilities):
         # Add suffix of adapter_config_name (upper case) to short_study for adapters
         df['short_study'] = df.apply(lambda x: f"{x['short_study']}_{x['adapter_config_name'].upper()}" if x['model_type'] == 'adapter' else x['short_study'], axis=1)
 
+        # Access example
+        # condition = ((df['short_study'] == 'ROBERTA') & (df['version'] == 'v01') & (df['task'] == 'ACL-ARC'))
+        # df[condition][['task', 'version', 'short_study','trial', 'eval_macro_f1']].reset_index()
+        # df[condition][['task', 'version', 'short_study','trial', 'eval_macro_f1', 'av_trial_macro_f1']].reset_index()
 
-        # Further processing (to be refactored)
+        #  Get the average eval_macro_f1 per trial across seeds
+        cols_trial_level = ['study', 'trial']
+        df_trial_level = df.groupby(cols_trial_level)['eval_macro_f1'].mean().reset_index()
+        df = df.merge(df_trial_level, how='left', on=cols_trial_level, suffixes=('', '_av'))
+        df.rename(columns={'eval_macro_f1_av': 'av_trial_macro_f1'}, inplace=True)
+
+        # Get the mean and max f1 average per study
+        # Since in the study we aim to find the best hyperparameters, then select the max f1 average per study
+        # However, we'll start with just the mean to be conservative
+        cols_study_level = ['study']
+        df_grouped = df_trial_level.groupby(cols_study_level)['eval_macro_f1'].agg(['mean', 'max']).reset_index()
+        df_grouped.rename(columns={'mean': 'av_study_macro_f1', 'max': 'max_study_macro_f1'}, inplace=True)
+        df = df.merge(df_grouped, how='left', on=cols_study_level, suffixes=('', '_max'))
+
+        # Save for further study analysis
+        os.makedirs('resources', exist_ok=True)
+        df.to_csv('resources/df_final_results.csv', index=False)
+
+        # Further processing (to be refacored)
         df['trial_order'] = df['trial']
         df.sort_values(by=['short_study', 'model_variant', 'trial_order'], inplace=True)
-
-        # Get the average eval_macro_f1 per trial across seeds
-        df_grouped = df.groupby(['study', 'trial'])['eval_macro_f1'].mean().reset_index()
-        df = df.merge(df_grouped, how='left', on=['study', 'trial'], suffixes=('', '_av'))
-        df.rename(columns={'eval_macro_f1_av': 'av_trial_macro_f1'}, inplace=True)
 
         tasks = df['task'].unique()
         for task in tasks:
             versions = df['version'].unique()
             for version in versions:
+                if version not in ['v03', 'v04', 'v05', 'v06']:
+                    # Skip as these do not update
+                    continue
+                print("------> Processing task: ", task, "Version: ", version)
 
                 out_dir = f'resources/{task}/{version}'
                 os.makedirs(out_dir, exist_ok=True)
 
                 filtered_df = df[(df['task'] == task) & (df['version'] == version)]
+                if version != 'v01':
+                    # Need to add model results
+                    filtered_df = pd.concat([filtered_df, df[(df['task'] == task) & (df['version'] == 'v01')]])
                 
-
+                # Get the full list of abbreviations by manually adding adapter abbreviations
                 full_abbreviations = list(abbreviations.values()) + ['ROBERTA_SEQ_BN', 'ROBERTA_DOUBLE_SEQ_BN', 'DAPT_SEQ_BN', 'DAPT_DOUBLE_SEQ_BN']
-                # Drop duplicates, maintaining order
                 full_abbreviations = list(dict.fromkeys(full_abbreviations))
 
                 # Make plots
@@ -404,7 +444,6 @@ class TrainerAnalytics(TrainerUtilities):
 
         return last_training_entry, last_evaluation_entry, training_entries, evaluation_entries
 
-
     def plot_losses_by_type(self, df, filters_dict, out_dir):
 
         # Define Adapters as those indexes that have adapter_config_name
@@ -436,21 +475,15 @@ class TrainerAnalytics(TrainerUtilities):
 
                 n_subplot += 1
 
-            if dataframe.empty:
-                continue
+            # if dataframe.empty:
+            #     continue
 
             plt.tight_layout()  # Adjust layout to prevent overlap
             plt.savefig(f'{out_dir}/{loss_type}_across_seeds_comparison.png')
             plt.show()
             print("Finished Loss Type Plot")
 
-
     def plot_evaluation_f1_macro(self, df, filters_dict, ordered_labels, comparison_results_task, out_dir):
-
-        # Get the mean or max f1 average per study
-        df_grouped = df.groupby(['short_study'])['av_trial_macro_f1'].mean().reset_index()
-        df = df.merge(df_grouped, how='left', on=['short_study'], suffixes=('', '_max'))
-        df.rename(columns={'av_trial_macro_f1_max': 'av_study_macro_f1'}, inplace=True)
 
         # Add benchmarks for adapters
         comparison_results_task.update({
@@ -528,7 +561,6 @@ class TrainerAnalytics(TrainerUtilities):
         plt.close()
         print("Finished F1 Metric Plot")
 
-
     def get_latest_checkpoint_directory(self, seed_path):
         """Return the path to the latest checkpoint directory or the regular trainer state path."""
         checkpoint_dirs = [d for d in os.listdir(seed_path) if d.startswith('checkpoint-')]
@@ -587,12 +619,14 @@ class TrainerOutputProcessor(TrainerUtilities):
 
         self.incomplete_studies_dict = self.get_incomplete_studies()
         potentially_halted = set(self.incomplete_studies_dict['trainer_outputs']) - set(self.incomplete_studies_dict['optuna'])
+        1==1 # breakpoint area
 
-        1==1
+        # Manual functions for deletion
+        # self.delete_folder_and_optuna_study('cs_roberta_base_sciie_seq_bn_training_adapter_v01')
+        # self.all_studies_dict['cs_roberta_base_sciie_seq_bn_training_adapter_v01']
 
-        # self.delete_folder_and_optuna_study('cs_roberta_base_citation_intent_training_base_v03')
-        # self.all_studies_dict['dsp_roberta_base_dapt_cs_tapt_citation_intent_1688_citation_intent_training_base_v01']
-
+        # dsp_roberta_base_dapt_cs_tapt_citation_intent_1688_citation_intent_training_base_v03
+        # dsp_roberta_base_tapt_citation_intent_1688_citation_intent_training_base_v03
 
     def delete_study(self, study_name):
         """
@@ -622,17 +656,16 @@ class TrainerOutputProcessor(TrainerUtilities):
                     #         # Delete checkpoint folder
                     #         os.system(f"rm -r {checkpoint_path}")
 
+        # in linux check how large a folder is
+        # du -sh folder_name
+
+        #list all subdirectories in skeleton format
+        # tree -L 2 -d
+
+        # Those that have checkpoit subfolder
+        # find . -type d -name checkpoint
+
         return missing_mlflow
-
-# in linux check how large a folder is
-# du -sh folder_name
-
-#list all subdirectories in skeleton format
-# tree -L 2 -d
-
-# Those that have checkpoit subfolder
-# find . -type d -name checkpoint
-
 
     def get_mismatch_storage_studies(self):
         """
@@ -686,17 +719,21 @@ class TrainerOutputProcessor(TrainerUtilities):
             command = self.form_command_from_study_name(study)
             print(command)
 
-    def get_missing_mlflow_ids(self, study_path):
-        pass
-
-
     def get_incomplete_studies(self):
         """
         Analyses training output dir for studies that are incomplete and could be deleted.
         """
+        trainer = self.get_trainer_output_incomplete_studies()
+        optuna = self.get_optuna_incomplete_studies()
+
+        both = set(trainer).intersection(set(optuna))
+        trainer_only = set(trainer) - set(optuna)
+        optuna_only = set(optuna) - set(trainer)
+
         return {
-            'trainer_outputs': self.get_trainer_output_incomplete_studies(),
-            'optuna': self.get_optuna_incomplete_studies()
+            'both': both,
+            'trainer_outputs': trainer_only,
+            'optuna': optuna_only
         }
 
     def get_trainer_output_incomplete_studies(self):
@@ -742,104 +779,8 @@ class TrainerOutputProcessor(TrainerUtilities):
         else:
             print(f"Study {delete_candidate} does not exist in storage.")
 
-    # def extract_latest_epoch_per_seed(study_path):
-    #     """Process each study directory to find the latest epoch per seed in each trial."""
-    #     study_data = {}
-
-    #     for study in os.listdir(study_path):
-    #         trial_path = os.path.join(study_path, study)
-    #         # Get latest trial, the folders are named as trial_1, trial_2, etc.
-    #         trials = os.listdir(trial_path)
-    #         latest_trial = max(trials, key=lambda x: int(x.split('_')[-1]))
-    #         trial_path = os.path.join(trial_path, latest_trial)
-
-    #         # Get number of seed that have a trainer_state.json file inside them
-    #         seeds_finished = 0
-    #         seeds = os.listdir(trial_path)
-    #         for seed in seeds:
-    #             seed_path = os.path.join(trial_path, seed)
-    #             # List files
-    #             files = os.listdir(seed_path)
-    #             if 'trainer_state.json' in files:
-    #                 n_finished += 1
-            
-
-        
-
-        # for seed in os.listdir(trial_path):
-        #     seed_path = os.path.join(trial_path, seed)
-        #     trainer_state_path, _ = get_latest_checkpoint_directory(seed_path)
-        #     if trainer_state_path and os.path.isfile(trainer_state_path):
-        #         data = load_json_data(trainer_state_path)
-        #         latest_epoch = extract_latest_epoch(data)
-        #         trial_data[seed] = latest_epoch
-        # study_data[trial] = trial_data
-
-        # return study_data
-
-
 if __name__ == "__main__":
     trainer_output_path = "training_output"
 
     processor = TrainerOutputProcessor(trainer_output_path)
     analytics = TrainerAnalytics(trainer_output_path)
-
-
-
-# Legacy functions, keeping for reference for a few commits
-    # def form_command_from_study_name(self, study_name):
-    #     """
-    #     Experimental, this is just to facilitate the creation of the bash commands for the expected runs.
-    #     Could be worked on to make automatic commands and pipes in the future.
-    #     """
-    #     # Pattern to identify if it's an adapter study or a base study
-    #     adapter_pattern = re.compile(r'(.+)_(citation_intent|sciie)_(seq_bn|double_seq_bn)_training_adapter_v(\d+)$')
-    #     base_pattern = re.compile(r'(.+)_(citation_intent|sciie)_training_base_v(\d+)$')
-
-    #     # Base directory paths for scripts
-    #     base_script_path = "cs_7643_efficiencylane/utils/run_parallel.sh"
-    #     adapter_script_path = "cs_7643_efficiencylane/utils/run_parallel_adapter.sh"
-
-    #     # Check for adapter pattern and construct the command
-    #     adapter_match = adapter_pattern.match(study_name)
-    #     base_match = base_pattern.match(study_name)
-
-    #     if adapter_match:
-    #         model_variant, dataset_name, adapter_config, version = adapter_match.groups()
-    #         adapter_name = f'adapter_{dataset_name}'
-    #         # Construct the model variant part, considering if it's a default or includes a prefix like 'allenai/'
-    #         if not any(sub in model_variant for sub in ['roberta-base', './mlm_model']):  # This can be adjusted based on expected model variant names
-    #             model_variant = "allenai/" + model_variant
-
-    #         command = f"bash {adapter_script_path} {model_variant} {dataset_name} {adapter_config} {adapter_name} adapter_v{version}"
-    #     elif base_match:
-    #         model_variant, dataset_name, version = base_match.groups()
-    #         model_config = 'classifier_head'
-    #         # Construct the model variant part, considering if it's a default or includes a prefix like 'allenai/'
-    #         if not any(sub in model_variant for sub in ['roberta-base', './mlm_model']):  # This can be adjusted based on expected model variant names
-    #             model_variant = "allenai/" + model_variant
-
-    #         command = f"bash {base_script_path} {model_variant} {dataset_name} {model_config} base_v{version}"
-    #     else:
-    #         command = f"Invalid study name pattern for {study_name}."
-
-    #     return command
-
-    # def extract_study_name_from_cmd(self, command):
-    #     """
-    #     Helper to get important info from a command, for an assummed structure.
-    #     This will stop working if the structure changes.
-    #     """
-    #     parts = command.split()
-    #     if 'run_parallel_adapter.sh' in command:
-    #         model_variant = parts[2].split('/')[-1]
-    #         dataset_name = parts[3]
-    #         adapter_config_name = parts[4]
-    #         study_suffix = parts[6]
-    #         study_name = f"{model_variant}_{dataset_name}_{adapter_config_name}_training_{study_suffix}"
-    #     else:
-    #         model_variant = parts[2].split('/')[-1]
-    #         dataset_name = parts[3]
-    #         study_suffix = parts[5]
-    #         study_name = f"{model_variant}_{dataset_name}_training_{study_suffix}"
-    #     return study_name

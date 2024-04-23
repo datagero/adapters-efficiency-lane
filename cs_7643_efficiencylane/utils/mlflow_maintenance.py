@@ -32,11 +32,12 @@ def main():
     print(mlflow_ids)
 
     keep_mlflow_ids = []
-    # For every folder with mlflow_id.txt, read the file and print its contents
+    # For every folder in trainer results with mlflow_id.txt
     for folder in mlflow_ids:
         with open(os.path.join(folder, "mlflow_id.txt"), "r") as file:
             keep_mlflow_ids.append(file.read())
 
+    # Delete all other mlflow logs
     delete_mlflow_ids = [folder for folder in folders if folder not in keep_mlflow_ids]
     for id in delete_mlflow_ids:
         os.system(f"rm -r {os.path.join(directory, id)}")

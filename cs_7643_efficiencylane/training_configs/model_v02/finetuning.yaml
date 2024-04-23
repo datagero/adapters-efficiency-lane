@@ -1,0 +1,17 @@
+training_args:
+  num_train_epochs: 10
+  per_device_train_batch_size: 16
+  per_device_eval_batch_size: 8
+  learning_rate: 2e-5
+  save_strategy: 'no' # Too heavy for current storage, and we just need baseline results, not actually using the model
+  load_best_model_at_end: false # Cannot load best model as it is not save_strategy='no'
+  disable_tqdm: false # Disable if processing in parallel
+
+optuna:
+  n_trials: 2 # n_trials per experiment run (note, we could run multiple experiments in parallel to speed up the search process)
+
+output_dir: ./training_output
+
+defaults:
+  - base_config.yaml
+
