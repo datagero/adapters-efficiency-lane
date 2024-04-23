@@ -1,5 +1,6 @@
 legacy/
 training_output/
+resources/
 # training_output/*v03
 final_adapter/
 archive/
