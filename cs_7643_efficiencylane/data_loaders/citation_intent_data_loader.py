@@ -7,8 +7,8 @@ from transformers import RobertaTokenizer, DataCollatorForLanguageModeling
 class CSTasksDataLoader:
     def __init__(self, model_name, dataset_name, path, checkpoint_path):
 
-        if dataset_name not in ['citation_intent', 'sciie']:
-            raise ValueError("Invalid dataset name. Supported datasets: citation_intent, sciie")
+        # if dataset_name not in ['citation_intent', 'sciie']:
+        #     raise ValueError("Invalid dataset name. Supported datasets: citation_intent, sciie")
 
         self.model_name = model_name
         self.dataset_name = dataset_name
@@ -41,7 +41,40 @@ class CSTasksDataLoader:
             "test": self.path + "test.jsonl",
             "dev": self.path + "dev.jsonl"
         }
+
+        # MANUAL FIX FOR ONE OF OUR DATASETS
+        # # Check that datafiles contain the same columns
+        # with open(data_files["train"], 'r') as file:
+        #     columns = set(json.loads(file.readline()).keys())
+        
+        # for file in data_files.values():
+        #     with open(file, 'r') as file:
+        #         if columns != set(json.loads(file.readline()).keys()):
+        #             print("File:", file)
+        #             print("Columns in data files:", columns)
+        #             print("Columns in file:", set(json.loads(file.readline()).keys()))
+        #             raise ValueError("Data files do not contain the same columns.")
+
+        # # Identified problem with ag test dataset
+        # # Add an id column to the dataset
+        # # First, make backup of the original file
+        # import os
+        # backup_name = data_files['test'].replace('.jsonl', '_original.jsonl')
+        # os.system(f"cp {data_files['test']} {backup_name}")
+
+        # with open(backup_name, 'r') as file:
+        #     data = [json.loads(line) for line in file]
+        #     for idx, item in enumerate(data):
+        #         item["id"] = idx
+        #     with open(data_files['test'], 'w') as file:
+        #         for item in data:
+        #             json.dump(item, file)
+        #             file.write("\n")
+
+
         dataset = load_dataset("json", data_files=data_files)
+
+
 
         self._update_labels()
 

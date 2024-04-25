@@ -15,6 +15,49 @@ import seaborn as sns
 trials_dict = {'adapter': 10, 'model': 5}
 seeds_dict = {'adapter': 5, 'model': 5}
 
+# Define a Python function that generates the LaTeX table for each unique task from the CSV data.
+def generate_latex_tables_from_csv(csv_data):
+    # Read the CSV data into a pandas DataFrame
+    df = pd.read_csv(csv_data)
+
+    # Function to format a single row in LaTeX syntax
+    def format_row(row):
+        # Format each cell with value and standard deviation as subscript
+        formatted_cells = [row['short_study']] + [f"{row[f'f1_{method}']*100:.2f}$_{{\\text{{ {row[f'std_f1_{method}']*100:.2f}}}}}$"
+                           if pd.notna(row[f'f1_{method}']) else ""
+                           for method in ['baseline', 'finetuning', 'pfeiffer', 'houlsby']]
+        return ' & '.join(formatted_cells)
+
+    # Iterate over each unique task and generate the LaTeX table
+    tables = {}
+    for task in df['task'].unique():
+        # ignore nan
+        if pd.isna(task):
+            print("Skipping nan task")
+            continue
+        task_data = df[df['task'] == task]
+
+        # Generate LaTeX table content
+        table_content = '\\\\ \n'.join(task_data.apply(format_row, axis=1))
+        
+        # Define the LaTeX table format
+        table_latex = f"""\\begin{{table}}[htbp]
+    \\centering
+    \\caption{{{task}}}
+    \\label{{table:{task.lower().replace('-', '')}}}
+    \\begin{{tabular}}{{@{{}}lcccc@{{}}}}
+    \\toprule
+    Pre-trained Model & Baseline & Fine Tuning & Adapter Pfeiffer & Adapter Houlsby \\\\ \\midrule
+    {table_content}\\\\
+    \\bottomrule
+    \\end{{tabular}}
+\\end{{table}}"""
+        
+        # Add the generated table to the dictionary with the task as the key
+        tables[task] = table_latex
+    
+    return tables
+
 class TrainerUtilities:
     """
     Parent class
@@ -30,28 +73,57 @@ class TrainerUtilities:
         self.study_paths = os.listdir(trainer_output_path)
         self.optuna_studies = optuna.study.get_all_study_names(storage)
 
-    def container_of_expected_runs(self, dataset="citation_intent", version="v01"):
+    def container_of_expected_runs(self, dataset="citation_intent", version="v01", parallelism="1"):
 
         bash_commands_dict = {
-            f"roberta-base_{dataset}_training_model_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh roberta-base {dataset} finetuning model_{version}",
-            f"cs_roberta_base_{dataset}_training_model_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh allenai/cs_roberta_base {dataset} finetuning model_{version}",
-            f"roberta-base_{dataset}_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh roberta-base {dataset} seq_bn adapter_{dataset} adapter_{version}",
-            f"roberta-base_{dataset}_double_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh roberta-base {dataset} double_seq_bn adapter_{dataset} adapter_{version}",
-            f"cs_roberta_base_{dataset}_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh allenai/cs_roberta_base {dataset} seq_bn adapter_{dataset} adapter_{version}",
-            f"cs_roberta_base_{dataset}_double_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh allenai/cs_roberta_base {dataset} double_seq_bn adapter_{dataset} adapter_{version}"
+            f"roberta-base_{dataset}_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh roberta-base {dataset} seq_bn adapter_default adapter_{version}",
+            f"roberta-base_{dataset}_double_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh roberta-base {dataset} double_seq_bn adapter_default adapter_{version}",
         }
 
-        if dataset == 'citation_intent':
+        if dataset in ['citation_intent', 'sciie']:
+            bash_commands_dict = {
+                f"roberta-base_{dataset}_training_model_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh roberta-base {dataset} finetuning model_{version}",
+                f"roberta-base_{dataset}_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh roberta-base {dataset} seq_bn adapter_default adapter_{version}",
+                f"roberta-base_{dataset}_double_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh roberta-base {dataset} double_seq_bn adapter_default adapter_{version}",
+                f"cs_roberta_base_{dataset}_training_model_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh allenai/cs_roberta_base {dataset} finetuning model_{version}",
+                f"cs_roberta_base_{dataset}_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh allenai/cs_roberta_base {dataset} seq_bn adapter_default adapter_{version}",
+                f"cs_roberta_base_{dataset}_double_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh allenai/cs_roberta_base {dataset} double_seq_bn adapter_default adapter_{version}"
+            }
+
+            if dataset == 'citation_intent':
+                bash_commands_dict.update({
+                    f"mlm_model_{dataset}_training_model_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh ./mlm_model {dataset} finetuning model_{version}",
+                    f"dsp_roberta_base_tapt_citation_intent_1688_{dataset}_training_model_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh allenai/dsp_roberta_base_tapt_citation_intent_1688 {dataset} finetuning model_{version}",
+                    f"dsp_roberta_base_dapt_cs_tapt_citation_intent_1688_{dataset}_training_model_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh allenai/dsp_roberta_base_dapt_cs_tapt_citation_intent_1688 {dataset} finetuning model_{version}",
+                    f"dsp_roberta_base_tapt_citation_intent_1688_{dataset}_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh allenai/dsp_roberta_base_tapt_citation_intent_1688 {dataset} seq_bn adapter_default adapter_{version}",
+                    f"dsp_roberta_base_tapt_citation_intent_1688_{dataset}_double_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh allenai/dsp_roberta_base_tapt_citation_intent_1688 {dataset} double_seq_bn adapter_default adapter_{version}",
+                    f"dsp_roberta_base_dapt_cs_tapt_citation_intent_1688_{dataset}_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh allenai/dsp_roberta_base_dapt_cs_tapt_citation_intent_1688 {dataset} seq_bn adapter_default adapter_{version}",
+                    f"dsp_roberta_base_dapt_cs_tapt_citation_intent_1688_{dataset}_double_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh allenai/dsp_roberta_base_dapt_cs_tapt_citation_intent_1688 {dataset} double_seq_bn adapter_default adapter_{version}"
+                })
+            if dataset == 'sciie':
+                bash_commands_dict.update({
+                    f"dsp_roberta_base_tapt_sciie_3219_{dataset}_training_model_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh allenai/dsp_roberta_base_tapt_sciie_3219 {dataset} finetuning model_{version}",
+                    f"dsp_roberta_base_dapt_cs_tapt_sciie_3219_{dataset}_training_model_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh allenai/dsp_roberta_base_dapt_cs_tapt_sciie_3219 {dataset} finetuning model_{version}"
+                })
+
+        if dataset in ['hyperpartisan_news', 'ag']:
+
             bash_commands_dict.update({
-                f"mlm_model_{dataset}_training_model_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh ./mlm_model {dataset} finetuning model_{version}",
-                f"dsp_roberta_base_tapt_citation_intent_1688_{dataset}_training_model_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh allenai/dsp_roberta_base_tapt_citation_intent_1688 {dataset} finetuning model_{version}",
-                f"dsp_roberta_base_dapt_cs_tapt_citation_intent_1688_{dataset}_training_model_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh allenai/dsp_roberta_base_dapt_cs_tapt_citation_intent_1688 {dataset} finetuning model_{version}"
+                f"news_roberta_base_{dataset}_training_model_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh allenai/news_roberta_base {dataset} finetuning model_{version}",
+                f"news_roberta_base_{dataset}_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh allenai/news_roberta_base {dataset} seq_bn adapter_default adapter_{version}",
+                f"news_roberta_base_{dataset}_double_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh allenai/news_roberta_base {dataset} double_seq_bn adapter_default adapter_{version}",
             })
-        if dataset == 'sciie':
+
+        if dataset in ['amazon', 'imdb']:
+
             bash_commands_dict.update({
-                f"dsp_roberta_base_tapt_sciie_3219_{dataset}_training_model_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh allenai/dsp_roberta_base_tapt_sciie_3219 {dataset} finetuning model_{version}",
-                f"dsp_roberta_base_dapt_cs_tapt_sciie_3219_{dataset}_training_model_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh allenai/dsp_roberta_base_dapt_cs_tapt_sciie_3219 {dataset} finetuning model_{version}"
+                f"reviews_roberta_base{dataset}_training_model_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh allenai/reviews_roberta_base {dataset} finetuning model_{version}",
+                f"reviews_roberta_base{dataset}_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh allenai/reviews_roberta_base {dataset} seq_bn adapter_default adapter_{version}",
+                f"reviews_roberta_base{dataset}_double_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh allenai/reviews_roberta_base {dataset} double_seq_bn adapter_default adapter_{version}",
             })
+
+        for study, command in bash_commands_dict.items():
+            bash_commands_dict[study] = bash_commands_dict[study] + f" {parallelism}"
 
         return bash_commands_dict
 
@@ -82,13 +154,23 @@ class TrainerUtilities:
 
     def get_in_scope_studies(self):
         study_dict = {}
-        for version in ["v01"]:#, "v02", "v03", "v04", "v05", "v06"]:
-            "Three versions for citation_intent dataset"
+        for version in ["v01"]:
             study_dict.update(self.container_of_expected_runs(dataset="citation_intent", version=version))
 
-        for version in ["v01"]:#v02", "v03", "v04", "v05", "v06"]:
-            "Two versions for sciie dataset"
+        for version in ["v01"]:
             study_dict.update(self.container_of_expected_runs(dataset="sciie", version=version))
+
+        for version in ["v01"]:
+            study_dict.update(self.container_of_expected_runs(dataset="hyperpartisan_news", version=version))
+
+        for version in ["v01"]:
+            study_dict.update(self.container_of_expected_runs(dataset="ag", version=version))
+
+        for version in ["v01"]:
+            study_dict.update(self.container_of_expected_runs(dataset="amazon", version=version))
+
+        for version in ["v01"]:
+            study_dict.update(self.container_of_expected_runs(dataset="imdb", version=version))
 
         # Models might stop being traind before adapters
         in_scope = {}
@@ -101,6 +183,9 @@ class TrainerUtilities:
                 elif model_type == 'adapter' and 'mlm_model' in command:
                     continue
 
+            if study_name.endswith('gold') or study_name.endswith('test') or study_name.endswith('backup'):
+                continue
+
             in_scope[study_name] = command
 
         return in_scope
@@ -111,6 +196,32 @@ class TrainerUtilities:
         """
         all_seed_paths = {}
         for trial in os.listdir(study_path):
+            all_seed_paths[trial] = []
+            trial_path = os.path.join(study_path, trial)
+            if not os.path.isdir(trial_path):
+                continue
+            for seed in os.listdir(trial_path):
+                seed_path = os.path.join(trial_path, seed)
+                all_seed_paths[trial].append(seed_path)
+        return all_seed_paths
+
+
+    def get_successful_trial_and_seed_paths(self, study_name):
+        """
+        Get all trial and seed paths for a given study path.
+        """
+        study_path = os.path.join(self.trainer_output_path, study_name)
+        all_seed_paths = {}
+
+        study = self.load_optuna_study(study_name)
+        trial_statuses = {trial.number: trial.state.name for trial in study.trials}
+
+        for trial in os.listdir(study_path):
+            trial_number = int(trial.split('_')[-1])
+            trial_status = trial_statuses[trial_number]
+            if trial_status != 'COMPLETE':
+                continue
+
             all_seed_paths[trial] = []
             trial_path = os.path.join(study_path, trial)
             if not os.path.isdir(trial_path):
@@ -141,6 +252,8 @@ class TrainerUtilities:
         # Get the incomplete studies
         complete_studies = []
         for study, status in study_completion.items():
+            if study == 'roberta-base_sciie_seq_bn_training_adapter_v01':
+                1==1
             if status == 'complete':
                 complete_studies.append(study)
 
@@ -167,14 +280,16 @@ class TrainerUtilities:
             # Using regex to dynamically check for the ending pattern and extract the version number
             model_type = self.get_model_type(study_name)
 
-            
+            if study_name == 'roberta-base_sciie_seq_bn_training_adapter_v01':
+                1==1
+
             if model_type in self.trials_dict:
                 # We expect 10 trials for any adapter version and 5 trials for any model version
                 expected_trials = self.trials_dict[model_type]
                 expected_seeds_per_trial = self.seeds_dict[model_type]
-                if 'sciie' in study_name and model_type == 'adapter':
-                    # We just run two seeds for sciie
-                    expected_seeds_per_trial = 2
+                # if 'sciie' in study_name and model_type == 'adapter':
+                #     # We just run two seeds for sciie
+                #     expected_seeds_per_trial = 2
             else:
                 completion_check[study_name] = 'incomplete'
                 continue  # Skip further checks as the study name pattern does not match
@@ -236,7 +351,9 @@ class TrainerUtilities:
 
         completed_studies = []
         for study_name in self.optuna_studies:
-            if study_name.endswith('test') or study_name.endswith('gold'):
+            if 'chemprot' in study_name:
+                continue
+            if study_name.endswith('test') or study_name.endswith('gold') or study_name.endswith('backup'):
                 continue
             study = self.load_optuna_study(study_name)
             trial_statuses = set([trial.state.name for trial in study.trials])
@@ -269,8 +386,8 @@ class TrainerAnalytics(TrainerUtilities):
 
         self.completed_studies, _ = self.check_study_completion()
 
-
-        trial_paths_dict = {x: self.get_all_trial_and_seed_paths(os.path.join(self.trainer_output_path, x)) for x in self.completed_studies}
+        trial_paths_dict = {x: self.get_successful_trial_and_seed_paths(x) for x in self.completed_studies}
+        # trial_paths_dict = {x: self.get_all_trial_and_seed_paths(os.path.join(self.trainer_output_path, x)) for x in self.completed_studies}
 
         final_training_entries = []
         final_evaluation_entries = []
@@ -281,6 +398,7 @@ class TrainerAnalytics(TrainerUtilities):
             model_type = self.get_model_type(study_name)
             # if model_type == 'gold':
             #     continue
+
             for trial, seed_paths in trial_dict.items():
                 for seed_path in seed_paths:
 
@@ -343,8 +461,26 @@ class TrainerAnalytics(TrainerUtilities):
             ('allenai/dsp_roberta_base_dapt_cs_tapt_citation_intent_1688', 'DAPT_TAPT'),
             ('allenai/dsp_roberta_base_tapt_citation_intent_1688', 'TAPT'),
             ('allenai/dsp_roberta_base_tapt_sciie_3219', 'TAPT'),
+            ('allenai/news_roberta_base', 'DAPT'),
+            ('allenai/reviews_roberta_base', 'DAPT')
             # ('./mlm_model', 'MLM-Base'),
         ])
+
+        adapter_names = OrderedDict([
+            ('seq_bn', 'Pfeiffer'),
+            ('double_seq_bn', 'Houlsby'),
+        ])
+
+        dataset_name_map = {
+            'citation_intent': 'ACL-ARC',
+            'sciie': 'SCIERC',
+            'hyperpartisan_news': 'HYPERPARTISAN',
+            'ag': 'AGNEWS',
+            'amazon': 'HELPFULNESS',
+            'imdb': 'IMDB',
+            'chemprot': 'CHEMPROT',
+            'rct-20k': 'RCT'
+        }
 
         # Check unique model_variantsß
         # unique_model_variants = df_training['model_variant'].unique()
@@ -352,52 +488,42 @@ class TrainerAnalytics(TrainerUtilities):
         # # Find differences
         # set(unique_model_variants) - set(abbreviations.keys())
 
-        df_training['short_study'] = df_training['model_variant'].map(abbreviations)
-        df_evaluation['short_study'] = df_evaluation['model_variant'].map(abbreviations)
+        dataframes = [df_training, df_evaluation, df_epoch_training, df_epoch_evaluation]
+        # Adjust columns as per mappings
+        for df in dataframes:
+            df['short_study'] = df['model_variant'].map(abbreviations)
+            df['adapter_name'] = df['adapter_config_name'].map(adapter_names)
+            df['task'] = df['dataset_name'].map(dataset_name_map)
 
         # Define the columns to keep and merge on
-        common = ['study', 'short_study', 'model_variant', 'model_type', 'dataset_name', 
-                      'trial', 'seed', 'epoch', 'adapter_config_name', 'config_name', 'version']
+        common = ['study', 'task', 'short_study', 'model_variant', 'model_type', 'dataset_name', 
+                      'trial', 'seed', 'epoch', 'adapter_name', 'config_name', 'version']
         train_cols = ['train_loss']
         eval_cols = ['eval_loss', 'eval_macro_f1']
         
         # join dataframes
         df = pd.merge(df_training[common + train_cols], df_evaluation[common + eval_cols], on=common, suffixes=('_train', '_eval'))
 
-
-        # Add suffix to short_study based on the dataset_name
-        # First, let's map the dataset_name
-        dataset_name_map = {
-            'citation_intent': 'ACL-ARC',
-            'sciie': 'SCIERC'
-        }
-
-        # Now create new column, task, with the new value
-        df['task'] = df['dataset_name'].map(dataset_name_map)
-        # Add suffix of adapter_config_name (upper case) to short_study for adapters
-        df['short_study'] = df.apply(lambda x: f"{x['short_study']}_{x['adapter_config_name'].upper()}" if x['model_type'] == 'adapter' else x['short_study'], axis=1)
+        # # Now create new column, task, with the new value
+        # df['task'] = df['dataset_name'].map(dataset_name_map)
 
 
         # For epochs dataframe
-
-        df_epoch_training['short_study'] = df_training['model_variant'].map(abbreviations)
-        df_epoch_evaluation['short_study'] = df_evaluation['model_variant'].map(abbreviations)
-
         # set(df_epoch_training.columns).intersection(set(df_epoch_evaluation.columns))
-        common = ['study', 'short_study', 'model_variant', 'model_type', 'dataset_name', 
-                      'trial', 'seed', 'epoch', 'adapter_config_name', 'config_name', 'version']
+        common = ['task', 'study', 'short_study', 'model_variant', 'model_type', 'dataset_name', 
+                      'trial', 'seed', 'epoch', 'adapter_name', 'config_name', 'version']
         train_cols = ['loss', 'learning_rate']
         eval_cols = ['eval_macro_f1', 'eval_loss']
 
         # Merge the dataframes
         df_epoch = pd.merge(df_epoch_training[common + train_cols], df_epoch_evaluation[common + eval_cols], on=common, suffixes=('_train', '_eval'))
 
-        # Add the short_study column
-        df_epoch['short_study'] = df_epoch['model_variant'].map(abbreviations)
-        # Add the task column
-        df_epoch['task'] = df_epoch['dataset_name'].map(dataset_name_map)
-        # Add the adapter_config_name suffix to short_study for adapters
-        df_epoch['short_study'] = df_epoch.apply(lambda x: f"{x['short_study']}_{x['adapter_config_name'].upper()}" if x['model_type'] == 'adapter' else x['short_study'], axis=1)
+        # # Add the short_study column
+        # df_epoch['short_study'] = df_epoch['model_variant'].map(abbreviations)
+        # # Add the task column
+        # df_epoch['task'] = df_epoch['dataset_name'].map(dataset_name_map)
+        # # Add the adapter_config_name suffix to short_study for adapters
+        # df_epoch['short_study'] = df_epoch.apply(lambda x: f"{x['short_study']}_{x['adapter_config_name'].upper()}" if x['model_type'] == 'adapter' else x['short_study'], axis=1)
 
         # drop model_variant = ./mlm_model
         df = df[df['model_variant'] != './mlm_model']
@@ -420,24 +546,160 @@ class TrainerAnalytics(TrainerUtilities):
         # df[condition][['task', 'version', 'short_study','trial', 'eval_macro_f1']].reset_index()
         # df[condition][['task', 'version', 'short_study','trial', 'eval_macro_f1', 'av_trial_macro_f1']].reset_index()
 
-        #  Get the average eval_macro_f1 per trial across seeds
+        #  Get the average eval_macro_f1 per trial across seeds, and the standard deviation
         cols_trial_level = ['study', 'trial']
-        df_trial_level = df.groupby(cols_trial_level)['eval_macro_f1'].mean().reset_index()
-        df = df.merge(df_trial_level, how='left', on=cols_trial_level, suffixes=('', '_av'))
-        df.rename(columns={'eval_macro_f1_av': 'av_trial_macro_f1'}, inplace=True)
+        df_trial_level = df.groupby(cols_trial_level)['eval_macro_f1'].agg(['max', 'mean', 'std']).reset_index()
+        df_trial_level.rename(columns={'max': 'max_trial_macro_f1', 'mean': 'av_trial_macro_f1', 'std': 'std_trial_macro_f1'}, inplace=True)
+        df_view = df.merge(df_trial_level, how='left', on=cols_trial_level)
+
 
         # Since in the study we aim to find the best hyperparameters, then select the max f1 average per study
-        # Find the maximum eval_macro_f1 for each study and keep the associated trial number
-        max_df = df_trial_level.loc[df_trial_level.groupby('study')['eval_macro_f1'].idxmax()]
-        max_df = max_df[['study', 'trial', 'eval_macro_f1']]
-        max_df.rename(columns={'trial': 'trial_number_for_max_f1', 'eval_macro_f1': 'max_study_macro_f1'}, inplace=True)
+        # Find the maximum av_trial_macro_f1 for each study and keep the associated trial number
+        base_cols = ['study', 'task', 'model_type', 'short_study', 'adapter_name', 'version', 'trial']
+        metrics = ['max_trial_macro_f1', 'av_trial_macro_f1', 'std_trial_macro_f1']
+
+        # Base dataframe
+        df_base = df_view[base_cols].drop_duplicates()
+
+        max_trials = df_trial_level.loc[df_trial_level.groupby('study')['av_trial_macro_f1'].idxmax()]
+        max_df = df_base.merge(max_trials, on=['study', 'trial'], how='inner')
+
+    
+        # drop study col for cleanness
+        max_df.drop('study', axis=1, inplace=True)
+        # Order by base_cols
+        max_df = max_df.sort_values(by=base_cols[1:])
+
+
+        performance_table_cols = ['task', 'short_study']
+        metric_cols = ['av_trial_macro_f1', 'std_trial_macro_f1']
+        adapter_pfeiffer_view = max_df[max_df['adapter_name'] == 'Pfeiffer']
+        adapter_houlsby_view = max_df[max_df['adapter_name'] == 'Houlsby']
+        model_view = max_df[max_df['model_type'] == 'model']
+        adapter_view = adapter_pfeiffer_view.merge(adapter_houlsby_view, on=performance_table_cols, how='left', suffixes=('_pfeiffer', '_houlsby'))
+
+        # For the model_view, join back to adapter_view
+        performance_view = model_view.merge(adapter_view, on=performance_table_cols, how='left')
+        performance_view.rename(columns={
+            'av_trial_macro_f1': 'f1_finetuning', 
+            'std_trial_macro_f1': 'std_f1_finetuning',
+            'av_trial_macro_f1_pfeiffer': 'f1_pfeiffer',
+            'std_trial_macro_f1_pfeiffer': 'std_f1_pfeiffer',
+            'av_trial_macro_f1_houlsby': 'f1_houlsby',
+            'std_trial_macro_f1_houlsby': 'std_f1_houlsby'},
+            inplace=True)
+        performance_view = performance_view[performance_table_cols + ['f1_finetuning', 'std_f1_finetuning', 'f1_pfeiffer', 'std_f1_pfeiffer', 'f1_houlsby', 'std_f1_houlsby']]
+        
+        # The order of short_study should be as listed below
+        order = ['ROBERTA', 'DAPT', 'TAPT', 'DAPT_TAPT']
+        performance_view['short_study'] = pd.Categorical(performance_view['short_study'], categories=order, ordered=True)
+        performance_view.sort_values(by=performance_table_cols, inplace=True)
+
+
+        domains_mapper = {
+            'ACL-ARC': 'CS',
+            'SCIERC': 'CS',
+            'HYPERPARTISAN': 'NEWS',
+            'AGNEWS': 'NEWS',
+            'HELPFULNESS': 'REVIEWS',
+            'IMDB': 'REVIEWS',
+            'CHEMPROT': 'BIOMED',
+            'RCT': 'BIOMED'
+        }
+
+        # Add domain column
+        performance_view['domain'] = performance_view['task'].map(domains_mapper)
+
+        # Load comparative_outputs json
+        with open('comparative_outputs/dont-stop-pretraining-model-outputs.json', 'r') as file:
+            comparative_outputs = json.load(file)
+
+        # Add results
+        for row in performance_view.itertuples():
+
+            domain = row.domain
+            task = row.task
+            base_model = row.short_study
+            f1_finetuning = row.f1_finetuning
+            f1_pfeiffer = row.f1_pfeiffer
+            f1_houlsby = row.f1_houlsby
+
+            std_f1_finetuning = row.std_f1_finetuning
+            std_f1_pfeiffer = row.std_f1_pfeiffer
+            std_f1_houlsby = row.std_f1_houlsby
+
+            performance_entry = comparative_outputs[domain][task]['performance']
+            if 'best_finetuning' not in performance_entry:
+                performance_entry['best_finetuning'] = {}
+            if 'best_pfeiffer' not in performance_entry:
+                performance_entry['best_pfeiffer'] = {}
+            if 'best_houlsby' not in performance_entry:
+                performance_entry['best_houlsby'] = {}
+
+            performance_entry['best_finetuning'][base_model] = {
+                'F1': f1_finetuning, 'std_dev': std_f1_finetuning}
+            performance_entry['best_pfeiffer'][base_model] = {
+                'F1': f1_pfeiffer, 'std_dev': std_f1_pfeiffer}
+            performance_entry['best_houlsby'][base_model] = {
+                'F1': f1_houlsby, 'std_dev': std_f1_houlsby}
+        
+        # Save updated json
+        with open('comparative_outputs/dont-stop-pretraining-model-outputs.json', 'w') as file:
+            json.dump(comparative_outputs, file, indent=4)
+
+
+        # Load the comparative outputs
+        with open('comparative_outputs/dont-stop-pretraining-model-outputs.json', 'r') as file:
+            comparative_outputs = json.load(file)
+        
+        # Structure the data for the latex tables
+        rows = []
+        for domain, domain_data in comparative_outputs.items():
+            for task, task_data in domain_data.items():
+                performance_data = task_data['performance']
+                for base_model in ['ROBERTA', 'DAPT', 'TAPT', 'DAPT_TAPT']:
+                    if 'best_finetuning' not in performance_data:
+                        continue
+
+                    if base_model not in performance_data['best_finetuning']:
+                        continue
+
+                    baseline_data = performance_data['baseline'][base_model]
+                    finetuning_data = performance_data['best_finetuning'][base_model]
+                    pfeiffer_data = performance_data['best_pfeiffer'][base_model]
+                    houlsby_data = performance_data['best_houlsby'][base_model]
+
+                    contents = {
+                        'task': task,
+                        'short_study': base_model,
+                        'f1_baseline': baseline_data['F1'],
+                        'std_f1_baseline': baseline_data['std_dev'],
+                        'f1_finetuning': finetuning_data['F1'],
+                        'std_f1_finetuning': finetuning_data['std_dev'],
+                        'f1_pfeiffer': pfeiffer_data['F1'],
+                        'std_f1_pfeiffer': pfeiffer_data['std_dev'],
+                        'f1_houlsby': houlsby_data['F1'],
+                        'std_f1_houlsby': houlsby_data['std_dev']
+                    }
+
+                    rows.append(contents)
+
+        comparison_data = pd.DataFrame(rows)
+        comparison_data.to_csv('resources/tmp_max_df2.csv', index=False)
+
+
+
+        latex_tables = generate_latex_tables_from_csv('resources/tmp_max_df2.csv')
+        print(latex_tables['ACL-ARC'].replace('DAPT_TAPT', 'DAPT\\_TAPT'))
+        print(latex_tables['SCIERC'].replace('DAPT_TAPT', 'DAPT\\_TAPT'))
+
 
         best_epochs = []
         best_trials = []
         for row in max_df.itertuples():
-            f1_score = row.max_study_macro_f1
+            f1_score = row.av_trial_macro_f1
             study = row.study
-            trial = row.trial_number_for_max_f1
+            trial = row.trial
             # Pick any seed
             seed = df[(df['study'] == study) & (df['trial'] == trial)]['seed'].min()
 
@@ -452,7 +714,7 @@ class TrainerAnalytics(TrainerUtilities):
 
             print(f"Study: {study}, \
                   \n ----> F1 Score: {f1_score}, \
-                  \n ----> Trial: {trial}, Seed: {seed}, Learning Rate: {learning_rate}, Batch Size: {batch_size}, Epochs: {epochs}")
+                  \n ----> Trial: {trial}, Learning Rate: {learning_rate}, Batch Size: {batch_size}, Epochs: {epochs}")
 
 
             best_trials.append({'study': study, 'trial': trial, 'f1_score': f1_score, 'learning_rate': learning_rate, 'batch_size': batch_size, 'epochs': epochs})
@@ -460,6 +722,10 @@ class TrainerAnalytics(TrainerUtilities):
 
         # Concatenate the dataframes inside best_epochs
         best_epochs_df = pd.concat(best_epochs)
+
+        
+        # order by model_type, sh
+
 
         # For each short_study, create a plot of the learning curves for each seed across epochs
         # Unique short studies
@@ -502,6 +768,9 @@ class TrainerAnalytics(TrainerUtilities):
                 # Filter data for the current model type
                 model_data = best_epochs_df[(best_epochs_df['model_type'] == model_type) & (best_epochs_df['task'] == task)]
 
+                if model_data.empty:
+                    continue
+
                 # Get unique studies for this model type
                 studies = model_data['short_study'].unique()
                 
@@ -521,9 +790,11 @@ class TrainerAnalytics(TrainerUtilities):
                 for ax, study in zip(axs, studies):
                     # Filter data for the current study
                     study_data = model_data[model_data['short_study'] == study]
+                    trial = set(study_data['trial'])
+                    assert len(trial) == 1, "Multiple trials found for the same best study"
 
                     # Plot setup for the subplot
-                    ax.set_title(f'Learning Curves for {study} ({model_type})')
+                    ax.set_title(f'Best Triall #{trial} Learning Curves for {study} ({model_type})')
                     ax.set_xlabel('Epoch')
                     ax.set_ylabel('Eval Macro F1')
 
@@ -595,12 +866,11 @@ class TrainerAnalytics(TrainerUtilities):
 
                 comparison_results_path = 'comparative_outputs/dont-stop-pretraining-model-outputs.json'
                 comparison_results = json.load(open(comparison_results_path))
-                comparison_results_task_raw = comparison_results['CS'][task]['performance']
+                comparison_results_task_raw = comparison_results['CS'][task]['performance']['baseline']
                 comparison_results_task = {k: round(v / 100, 4) for k, v in comparison_results_task_raw.items()}
 
                 self.plot_evaluation_f1_macro(filtered_df, filters_dict, full_abbreviations, comparison_results_task, out_dir)
 
-        1 == 1
 
     def extract_final_metrics(self, data, adapter=False):
         """Extract the last training and evaluation metrics from log history."""
@@ -668,10 +938,10 @@ class TrainerAnalytics(TrainerUtilities):
 
         # Add benchmarks for adapters
         comparison_results_task.update({
-            'ROBERTA_SEQ_BN': df[df['short_study'] == 'TAPT']['max_study_macro_f1'].mean(),
-            'ROBERTA_DOUBLE_SEQ_BN': df[df['short_study'] == 'TAPT']['max_study_macro_f1'].mean(),
-            'DAPT_SEQ_BN': df[df['short_study'] == 'DAPT_TAPT']['max_study_macro_f1'].mean(),
-            'DAPT_DOUBLE_SEQ_BN': df[df['short_study'] == 'DAPT_TAPT']['max_study_macro_f1'].mean()})
+            'ROBERTA_SEQ_BN': df[df['short_study'] == 'TAPT']['av_trial_macro_f1'].mean(),
+            'ROBERTA_DOUBLE_SEQ_BN': df[df['short_study'] == 'TAPT']['av_trial_macro_f1'].mean(),
+            'DAPT_SEQ_BN': df[df['short_study'] == 'DAPT_TAPT']['av_trial_macro_f1'].mean(),
+            'DAPT_DOUBLE_SEQ_BN': df[df['short_study'] == 'DAPT_TAPT']['av_trial_macro_f1'].mean()})
 
         # Set the aesthetic style of the plots
         sns.set_style("whitegrid")
@@ -695,7 +965,7 @@ class TrainerAnalytics(TrainerUtilities):
             
             if benchmark:
                 # Get the y position for the average eval_macro_f1 per study/trial
-                av_f1 = df[df['short_study'] == study]['max_study_macro_f1'].max()
+                av_f1 = df[df['short_study'] == study]['av_trial_macro_f1'].max()
 
                 if study in ['ROBERTA_SEQ_BN', 'ROBERTA_DOUBLE_SEQ_BN', 'DAPT_SEQ_BN', 'DAPT_DOUBLE_SEQ_BN']:
                     # These are experiments for hyperparameter tuning, so we take the best results per trial (trial is made up of 5 seeds)
@@ -798,7 +1068,8 @@ class TrainerOutputProcessor(TrainerUtilities):
 
         self.completed_studies, remediate_completed = self.check_study_completion()
         self.remediate_studies_dict = self.get_mismatch_storage_studies()
-        self.remediate_studies_dict.update({'optuna_failed': self.get_optuna_failed_studies()})
+        self.remediate_studies_dict.update({'optuna_failed': self.get_optuna_failed_studies()[0]})
+        self.remediate_studies_dict.update({'optuna_contains_failed': self.get_optuna_failed_studies()[1]})
         self.remediate_studies_dict.update({'missing_mlflow': self.get_missing_mlflow_studies()})
         self.remediate_studies_dict.update({'remediate_completed': remediate_completed})
         self.pending_studies = self.get_pending_studies()
@@ -808,8 +1079,12 @@ class TrainerOutputProcessor(TrainerUtilities):
         potentially_halted = set(self.incomplete_studies_dict['trainer_outputs']) - set(self.incomplete_studies_dict['optuna'])
         1==1 # breakpoint area
 
+        confirmed_run = [
+            'cs_roberta_base_citation_intent_seq_bn_training_adapter_v01', 
+            'cs_roberta_base_citation_intent_double_seq_bn_training_adapter_v01']
+
         # Manual functions for deletion
-        # self.delete_folder_and_optuna_study('roberta-base_sciie_seq_bn_training_adapter_v01')
+        # self.delete_folder_and_optuna_study('dsp_roberta_base_tapt_citation_intent_1688_citation_intent_training_adapter_v01')
         # self.delete_folder_and_optuna_study('cs_roberta_base_sciie_double_seq_bn_training_adapter_v01')
         # self.delete_folder_and_optuna_study('cs_roberta_base_citation_intent_double_seq_bn_training_adapter_v01')
         # self.delete_folder_and_optuna_study('roberta-base_sciie_seq_bn_training_adapter_v01')
@@ -817,13 +1092,13 @@ class TrainerOutputProcessor(TrainerUtilities):
         # self.delete_folder_and_optuna_study('roberta-base_sciie_double_seq_bn_training_adapter_v01')
         # self.delete_folder_and_optuna_study('roberta-base_citation_intent_double_seq_bn_training_adapter_v01')
 
-        # self.all_studies_dict['roberta-base_citation_intent_double_seq_bn_training_adapter_v01']
-        # self.all_studies_dict['roberta-base_sciie_seq_bn_training_adapter_v01']
-        # self.all_studies_dict['cs_roberta_base_citation_intent_double_seq_bn_training_adapter_v01']
-        # self.all_studies_dict['roberta-base_sciie_seq_bn_training_adapter_v01']
-        # self.all_studies_dict['roberta-base_citation_intent_double_seq_bn_training_adapter_v01']
-        # self.all_studies_dict['roberta-base_sciie_double_seq_bn_training_adapter_v01']
-        # self.all_studies_dict['roberta-base_citation_intent_double_seq_bn_training_adapter_v01']
+        # Rerun
+        # self.all_studies_dict['dsp_roberta_base_tapt_citation_intent_1688_citation_intent_training_adapter_v01'] + " -1"
+        # self.all_studies_dict['roberta-base_sciie_double_seq_bn_training_adapter_v01']  + " -1"
+
+        # Overwrite
+        # self.all_studies_dict['dsp_roberta_base_tapt_citation_intent_1688_citation_intent_seq_bn_training_adapter_v01'] + " 1"
+        # self.all_studies_dict['dsp_roberta_base_dapt_cs_tapt_citation_intent_1688_citation_intent_seq_bn_training_adapter_v01'] + " 1"
         
 
         # dsp_roberta_base_dapt_cs_tapt_citation_intent_1688_citation_intent_training_base_v03
@@ -953,12 +1228,17 @@ class TrainerOutputProcessor(TrainerUtilities):
 
     def get_optuna_failed_studies(self):
         failed_studies = []
+        contains_failed_studies = []
+        complete_studies = self.get_optuna_completed_studies()
         for study_name in self.optuna_studies:
             study = self.load_optuna_study(study_name)
             trial_statuses = set([trial.state.name for trial in study.trials])
             if 'FAIL' in trial_statuses:
-                failed_studies.append(study_name)
-        return failed_studies
+                if study_name not in complete_studies:
+                    # If the study contains a fail and has not completed
+                    failed_studies.append(study_name)
+                contains_failed_studies.append(study_name)
+        return failed_studies, contains_failed_studies
 
     def get_optuna_incomplete_studies(self):
         """ In Development """
@@ -985,3 +1265,4 @@ if __name__ == "__main__":
 
     processor = TrainerOutputProcessor(trainer_output_path)
     analytics = TrainerAnalytics(trainer_output_path)
+
