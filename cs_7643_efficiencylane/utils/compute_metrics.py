@@ -9,3 +9,7 @@ def compute_accuracy(p: EvalPrediction):
 def macro_f1(p: EvalPrediction):
     preds = np.argmax(p.predictions, axis=1)
     return {"macro_f1": f1_score(p.label_ids, preds, average='macro')}
+
+def micro_f1(p: EvalPrediction):
+    preds = np.argmax(p.predictions, axis=1)
+    return {"micro_f1": f1_score(p.label_ids, preds, average='micro')}

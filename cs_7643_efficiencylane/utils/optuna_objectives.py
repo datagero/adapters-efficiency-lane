@@ -68,11 +68,6 @@ def build_adapter_model(model_variant, num_labels, dataset_name, adapter_config_
     model = RobertaAdapterModel.from_pretrained(model_variant, config=config)
     model.to(device)
 
-    # original = model.__str__()
-    # # Save to text file
-    # with open("model.txt", "w") as f:
-    #     f.write(original)
-
     # Add adapter to model
     adapter_name = model_variant.split("/")[-1]+"_"+dataset_name+"_"+adapter_config_name
     model.add_adapter(adapter_name, config=adapter_config_name)
@@ -80,11 +75,6 @@ def build_adapter_model(model_variant, num_labels, dataset_name, adapter_config_
         adapter_name,
         num_labels=num_labels
     )
-
-    # adapted = model.__str__()
-    # # Save to text file
-    # with open("adapted.txt", "w") as f:
-    #     f.write(adapted)
 
     #  The train_adapter() method does two things:
     #     It freezes all weights of the pre-trained model, so only the adapter weights are updated during training.
@@ -112,7 +102,14 @@ def build_classification_model(model_variant, num_labels):
 
     return model
 
-def build_trainer(model, dataset, training_args_class, trainer_type):
+def build_trainer(model, dataset, training_args_class, trainer_type, compute_metric='macro_f1'):
+
+    if compute_metric == 'macro_f1':
+        compute_metrics_fn = compute_metrics.macro_f1
+    elif compute_metric == 'micro_f1':
+        compute_metrics_fn = compute_metrics.micro_f1
+    else:
+        raise ValueError("Invalid metric. Supported metrics: macro_f1, micro_f1")
 
     if trainer_type == 'model':
         return Trainer(
@@ -120,7 +117,7 @@ def build_trainer(model, dataset, training_args_class, trainer_type):
             args=training_args_class,
             train_dataset=dataset['train'],
             eval_dataset=dataset['dev'],
-            compute_metrics=compute_metrics.macro_f1,
+            compute_metrics=compute_metrics_fn,
         )
     elif trainer_type == 'adapter':
         return AdapterTrainer(
@@ -128,7 +125,7 @@ def build_trainer(model, dataset, training_args_class, trainer_type):
             args=training_args_class,
             train_dataset=dataset['train'],
             eval_dataset=dataset['dev'],
-            compute_metrics=compute_metrics.macro_f1,
+            compute_metrics=compute_metrics_fn,
         )
     else:
         raise ValueError("Invalid training type. Supported types: model, adapter")
@@ -189,6 +186,7 @@ def run_study_experiments(cfg: DictConfig, model_variant, dataset_name, study_na
         }
 
         if parallelism:
+            logger.info("Running in parallel mode for multiple seeds simultaneously.")
             """
             Note, this appears to have some issues with the current setup.
             The results from different seeds does not seem to vary for unknown reasons.
@@ -218,6 +216,7 @@ def run_study_experiments(cfg: DictConfig, model_variant, dataset_name, study_na
                     pbar.update(1)
 
         else:
+            logger.info("Running in sequential mode for one seeds at a time.")
             for seed in seeds:
                 task_args = copy.deepcopy(handle_trial_args)
                 task_args['training_args'].update({'seed': seed})

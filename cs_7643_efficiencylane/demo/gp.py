@@ -102,43 +102,43 @@ def train_task(dataset_name, dataset, model_name, model_type, num_labels, ft_lr=
         preds = np.argmax(p.predictions, axis=1)
         return {"acc": accuracy_score(p.label_ids, preds)}
 
-    # #We will first use fine-tuning to perform the given task using the pretrained model
-    # # Set up the model for fine-tuning
-    # fine_tuning_model = RobertaForSequenceClassification.from_pretrained(
-    #     model_name, num_labels=num_labels,
-    #     )
+    #We will first use fine-tuning to perform the given task using the pretrained model
+    # Set up the model for fine-tuning
+    fine_tuning_model = RobertaForSequenceClassification.from_pretrained(
+        model_name, num_labels=num_labels,
+        )
 
-    # # Training arguments
-    # fine_tuning_training_args = TrainingArguments(
-    #     learning_rate=ft_lr,
-    #     num_train_epochs=10,
-    #     per_device_train_batch_size=16,
-    #     per_device_eval_batch_size=16,
-    #     logging_dir=f"./{seed}_{dataset_name}_{model_type}_ft_logs",
-    #     logging_steps=100,
-    #     warmup_steps=500,
-    #     eval_steps=100,
-    #     load_best_model_at_end=True,
-    #     metric_for_best_model="eval_macro_f1",
-    #     output_dir=f"./{seed}_{dataset_name}_{model_type}_ft_output",
-    #     overwrite_output_dir=True,
-    #     evaluation_strategy="epoch",
-    #     save_strategy="epoch",
-    #     remove_unused_columns=False,
-    #     seed=seed
-    # )
+    # Training arguments
+    fine_tuning_training_args = TrainingArguments(
+        learning_rate=ft_lr,
+        num_train_epochs=10,
+        per_device_train_batch_size=16,
+        per_device_eval_batch_size=16,
+        logging_dir=f"./{seed}_{dataset_name}_{model_type}_ft_logs",
+        logging_steps=100,
+        warmup_steps=500,
+        eval_steps=100,
+        load_best_model_at_end=True,
+        metric_for_best_model="eval_macro_f1",
+        output_dir=f"./{seed}_{dataset_name}_{model_type}_ft_output",
+        overwrite_output_dir=True,
+        evaluation_strategy="epoch",
+        save_strategy="epoch",
+        remove_unused_columns=False,
+        seed=seed
+    )
 
-    # # Instantiate the base model using Trainer
-    # fine_tune_trainer = Trainer(
-    #     model=fine_tuning_model,
-    #     args=fine_tuning_training_args,
-    #     train_dataset=dataset["train"],
-    #     eval_dataset=dataset["dev"],
-    #     compute_metrics=compute_f1
-    # )
+    # Instantiate the base model using Trainer
+    fine_tune_trainer = Trainer(
+        model=fine_tuning_model,
+        args=fine_tuning_training_args,
+        train_dataset=dataset["train"],
+        eval_dataset=dataset["dev"],
+        compute_metrics=compute_f1
+    )
 
-    # # Fine tune the base model
-    # fine_tune_trainer.train()
+    # Fine tune the base model
+    fine_tune_trainer.train()
 
     """# Using Adapter instead of fine-tuning for the same task"""
 
@@ -179,9 +179,9 @@ def train_task(dataset_name, dataset, model_name, model_type, num_labels, ft_lr=
 
     adapter_training_args = TrainingArguments(
         learning_rate=ad_lr,
-        num_train_epochs=11,
-        per_device_train_batch_size=16,
-        per_device_eval_batch_size=16,
+        num_train_epochs=10,
+        per_device_train_batch_size=32,
+        per_device_eval_batch_size=32,
         logging_dir=f"./{seed}_{dataset_name}_{model_type}_adapter_logs",
         warmup_steps=500,
         logging_steps=10,
@@ -210,18 +210,17 @@ def train_task(dataset_name, dataset, model_name, model_type, num_labels, ft_lr=
     """# Compare the performance of the base fine-tuned model and the adapter."""
 
     # Evaluate the fine tuning model
-    # fine_tune_results = fine_tune_trainer.evaluate(dataset["test"])
+    fine_tune_results = fine_tune_trainer.evaluate(dataset["test"])
 
     # Evaluate the adapter model
     adapter_results = adapter_trainer.evaluate(dataset["test"])
 
-    # print(fine_tune_results)
+    print(fine_tune_results)
     print(adapter_results)
 
-    # print("Fine Tune Model Accuracy:", fine_tune_results['eval_macro_f1'])
+    print("Fine Tune Model Accuracy:", fine_tune_results['eval_macro_f1'])
     print("Adapter Model Accuracy:", adapter_results['eval_macro_f1'])
-    # return fine_tune_results['eval_macro_f1'], adapter_results['eval_macro_f1']
-    return adapter_results['eval_macro_f1']
+    return fine_tune_results['eval_macro_f1'], adapter_results['eval_macro_f1']
 
 
 def set_seed(seed):
@@ -240,28 +239,28 @@ def run_process(dataset_name, seed):
     set_seed(seed)
     model_type = 'base'
     model_name = task_models[dataset_name][model_type]
-    ad_result = train_task(dataset_name=dataset_name, dataset=dataset, model_name=model_name, model_type=model_type,
-                                      num_labels=num_labels, ft_lr=1.1e-5, ad_lr=0.000859543665373008, seed=seed)
+    ft_result = train_task(dataset_name=dataset_name, dataset=dataset, model_name=model_name, model_type=model_type,
+                                      num_labels=num_labels, ft_lr=1.1e-5, ad_lr=7.2e-4, seed=seed)
     results.append([seed, dataset_name, model_type, ft_result, ad_result])
     model_type = 'dapt'
     model_name = task_models[dataset_name][model_type]
     ft_result, ad_result = train_task(dataset_name=dataset_name, dataset=dataset, model_name=model_name, model_type=model_type,
-                                        num_labels=num_labels, ft_lr=1.2e-5, ad_lr=0.0005891578072061614, seed=seed)
-    # results.append([seed, dataset_name, model_type, ft_result, ad_result])
-    # model_type = 'tapt'
-    # model_name = task_models[dataset_name][model_type]
-    # ft_result, ad_result = train_task(dataset_name=dataset_name, dataset=dataset,
-    #                                     model_name=model_name,
-    #                                     model_type=model_type, num_labels=num_labels, ft_lr=1.1e-5, ad_lr=5e-4,
-    #                                     seed=seed)
-    # results.append([seed, dataset_name, model_type, ft_result, ad_result])
-    # model_type = 'dapt_tapt'
-    # model_name = task_models[dataset_name][model_type]
-    # ft_result, ad_result = train_task(dataset_name=dataset_name, dataset=dataset,
-    #                                     model_name=model_name,
-    #                                     model_type=model_type, num_labels=num_labels, ft_lr=1e-5, ad_lr=7.2e-4,
-    #                                     seed=seed)
-    # results.append([seed, dataset_name, model_type, ft_result, ad_result])
+                                        num_labels=num_labels, ft_lr=1.2e-5, ad_lr=7e-4, seed=seed)
+    results.append([seed, dataset_name, model_type, ft_result, ad_result])
+    model_type = 'tapt'
+    model_name = task_models[dataset_name][model_type]
+    ft_result, ad_result = train_task(dataset_name=dataset_name, dataset=dataset,
+                                        model_name=model_name,
+                                        model_type=model_type, num_labels=num_labels, ft_lr=1.1e-5, ad_lr=5e-4,
+                                        seed=seed)
+    results.append([seed, dataset_name, model_type, ft_result, ad_result])
+    model_type = 'dapt_tapt'
+    model_name = task_models[dataset_name][model_type]
+    ft_result, ad_result = train_task(dataset_name=dataset_name, dataset=dataset,
+                                        model_name=model_name,
+                                        model_type=model_type, num_labels=num_labels, ft_lr=1e-5, ad_lr=7.2e-4,
+                                        seed=seed)
+    results.append([seed, dataset_name, model_type, ft_result, ad_result])
     df = pd.DataFrame(results, columns=['Seed', 'Dataset', 'Model', 'Fine Tune Result', 'Adapter Result'])
     df['Seed'] = df['Seed'].astype(int)
     df['Fine Tune Result'] = df['Fine Tune Result'].astype(float)
@@ -271,4 +270,4 @@ def run_process(dataset_name, seed):
 
 if __name__ == "__main__":
     print('Starting process')
-    run_process('citation_intent', 42)
+
