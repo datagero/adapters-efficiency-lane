@@ -17,7 +17,7 @@ optuna_search_space:
     high: 1e-3
     type: loguniform
   batch_size:
-    values: [8, 16, 32, 64, 128]
+    values: [16, 32, 64, 128]
   num_train_epochs:
     low: 5
     high: 15

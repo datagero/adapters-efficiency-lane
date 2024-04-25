@@ -1,5 +1,7 @@
+local/
 legacy/
-training_output/
+training_output/*
+raining_output/roberta-base_citation_intent_double_seq_bn_training_adapter_v01/trial_7/seed_9091/trainer_state.json
 resources/
 # training_output/*v03
 final_adapter/

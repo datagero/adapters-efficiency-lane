@@ -172,23 +172,33 @@ class TrainerUtilities:
                 # We expect 10 trials for any adapter version and 5 trials for any model version
                 expected_trials = self.trials_dict[model_type]
                 expected_seeds_per_trial = self.seeds_dict[model_type]
+                if 'sciie' in study_name and model_type == 'adapter':
+                    # We just run two seeds for sciie
+                    expected_seeds_per_trial = 2
             else:
                 completion_check[study_name] = 'incomplete'
                 continue  # Skip further checks as the study name pattern does not match
 
-            # if study_name == "roberta-base_citation_intent_double_seq_bn_training_adapter_v01":
-            #     1==1
+            if study_name == "dsp_roberta_base_tapt_sciie_3219_sciie_training_model_v01":
+                1==1
 
             # Check if the number of trials matches the expectation
-            if len(trials) > 0 and len(trials) % expected_trials != 0:
+            if len(trials) > 0 and len(trials) < expected_trials:
                 completion_check[study_name] = 'incomplete'
+                # To do -> Check optuna to confirm completion of trials
                 continue  # Skip further checks as the trial count does not match
 
-            # Check if each trial has the expected number of completed seeds
-            if all(seeds_count == expected_seeds_per_trial for seeds_count in trials.values()):
-                completion_check[study_name] = 'complete'
-            else:
+            # Check if the study has the minimum required trials with completed seeds
+            completed_trials = sum(1 for n_seeds in trials.values() if n_seeds == expected_seeds_per_trial)
+            if completed_trials < expected_trials:
                 completion_check[study_name] = 'incomplete'
+            else:
+                completion_check[study_name] = 'complete'
+
+            # if all(seeds_count == expected_seeds_per_trial for seeds_count in trials.values()):
+            #     completion_check[study_name] = 'complete'
+            # else:
+            #     completion_check[study_name] = 'incomplete'
         
         return completion_check
 
@@ -220,8 +230,8 @@ class TrainerUtilities:
             if model_type not in self.trials_dict:
                 raise ValueError("Invalid model type")
             
-            if n_trials > self.trials_dict[model_type] and not n_trials % self.trials_dict[model_type] == 0:
-                raise ValueError("Invalid number of trials")
+            # if n_trials > self.trials_dict[model_type] and not n_trials % self.trials_dict[model_type] == 0:
+            #     raise ValueError("Invalid number of trials")
             return n_trials == self.trials_dict[model_type]
 
         completed_studies = []
@@ -231,13 +241,17 @@ class TrainerUtilities:
             study = self.load_optuna_study(study_name)
             trial_statuses = set([trial.state.name for trial in study.trials])
 
-            if all(status == 'COMPLETE' for status in trial_statuses):
-                # Check number of trials is as expected
-                n_trials = len(study.trials)
-                model_type = self.get_model_type(study_name)
-                completed_trials = check_completed_trials(model_type, n_trials)
-                if completed_trials:
-                    completed_studies.append(study.study_name)
+            # Count the number of completed trials
+            n_completed_trials = len([status for status in [trial.state.name for trial in study.trials] if status == 'COMPLETE'])
+            if n_completed_trials >= self.trials_dict[self.get_model_type(study_name)]:
+                completed_studies.append(study_name)
+            # if all(status == 'COMPLETE' for status in trial_statuses):
+            #     # Check number of trials is as expected
+            #     n_trials = len(study.trials)
+            #     model_type = self.get_model_type(study_name)
+            #     completed_trials = check_completed_trials(model_type, n_trials)
+            #     if completed_trials:
+            #         completed_studies.append(study.study_name)
         return completed_studies
 
     def load_optuna_study(self, study_name):
@@ -305,6 +319,22 @@ class TrainerAnalytics(TrainerUtilities):
         df_evaluation[['model_variant', 'dataset_name', 'adapter_config_name', 'config_name', 'version']] = df_evaluation.apply(
             lambda row: pd.Series(self.extract_parameters_from_command(row['command'], row['model_type'])), axis=1)
 
+
+
+        # Now, from the epoch_training_entries and epoch_evaluation_entries, let's create some learning curves
+        df_epoch_training = pd.DataFrame(epoch_training_entries)
+        df_epoch_evaluation = pd.DataFrame(epoch_evaluation_entries)
+
+        df_epoch_training['command'] = df_epoch_training['study'].apply(lambda x: self.all_studies_dict[x])
+        df_epoch_evaluation['command'] = df_epoch_evaluation['study'].apply(lambda x: self.all_studies_dict[x])
+
+        df_epoch_training[['model_variant', 'dataset_name', 'adapter_config_name', 'config_name', 'version']] = df_epoch_training.apply(
+            lambda row: pd.Series(self.extract_parameters_from_command(row['command'], row['model_type'])), axis=1)
+
+        df_epoch_evaluation[['model_variant', 'dataset_name', 'adapter_config_name', 'config_name', 'version']] = df_epoch_evaluation.apply(
+            lambda row: pd.Series(self.extract_parameters_from_command(row['command'], row['model_type'])), axis=1)
+
+
         from collections import OrderedDict
         abbreviations = OrderedDict([
             ('roberta-base', 'ROBERTA'),
@@ -333,9 +363,46 @@ class TrainerAnalytics(TrainerUtilities):
         
         # join dataframes
         df = pd.merge(df_training[common + train_cols], df_evaluation[common + eval_cols], on=common, suffixes=('_train', '_eval'))
-        
+
+
+        # Add suffix to short_study based on the dataset_name
+        # First, let's map the dataset_name
+        dataset_name_map = {
+            'citation_intent': 'ACL-ARC',
+            'sciie': 'SCIERC'
+        }
+
+        # Now create new column, task, with the new value
+        df['task'] = df['dataset_name'].map(dataset_name_map)
+        # Add suffix of adapter_config_name (upper case) to short_study for adapters
+        df['short_study'] = df.apply(lambda x: f"{x['short_study']}_{x['adapter_config_name'].upper()}" if x['model_type'] == 'adapter' else x['short_study'], axis=1)
+
+
+        # For epochs dataframe
+
+        df_epoch_training['short_study'] = df_training['model_variant'].map(abbreviations)
+        df_epoch_evaluation['short_study'] = df_evaluation['model_variant'].map(abbreviations)
+
+        # set(df_epoch_training.columns).intersection(set(df_epoch_evaluation.columns))
+        common = ['study', 'short_study', 'model_variant', 'model_type', 'dataset_name', 
+                      'trial', 'seed', 'epoch', 'adapter_config_name', 'config_name', 'version']
+        train_cols = ['loss', 'learning_rate']
+        eval_cols = ['eval_macro_f1', 'eval_loss']
+
+        # Merge the dataframes
+        df_epoch = pd.merge(df_epoch_training[common + train_cols], df_epoch_evaluation[common + eval_cols], on=common, suffixes=('_train', '_eval'))
+
+        # Add the short_study column
+        df_epoch['short_study'] = df_epoch['model_variant'].map(abbreviations)
+        # Add the task column
+        df_epoch['task'] = df_epoch['dataset_name'].map(dataset_name_map)
+        # Add the adapter_config_name suffix to short_study for adapters
+        df_epoch['short_study'] = df_epoch.apply(lambda x: f"{x['short_study']}_{x['adapter_config_name'].upper()}" if x['model_type'] == 'adapter' else x['short_study'], axis=1)
+
         # drop model_variant = ./mlm_model
         df = df[df['model_variant'] != './mlm_model']
+        df_epoch = df_epoch[df_epoch['model_variant'] != './mlm_model']
+
 
         # Select the trials for which to do the study
         # Ignore first trial for each study, since the model is still adapting
@@ -347,18 +414,6 @@ class TrainerAnalytics(TrainerUtilities):
         # Will try to run sequentially rather than in parallel.
         # df = df[~((df['model_type'] == 'model') & (df['trial'] > 2))]
 
-        # Add suffix to short_study based on the dataset_name
-        # First, let's map the dataset_name
-        dataset_name_map = {
-            'citation_intent': 'ACL-ARC',
-            'sciie': 'SCIERC'
-        }
-
-        # Now create new column, task, with the new value
-        df['task'] = df['dataset_name'].map(dataset_name_map)
-
-        # Add suffix of adapter_config_name (upper case) to short_study for adapters
-        df['short_study'] = df.apply(lambda x: f"{x['short_study']}_{x['adapter_config_name'].upper()}" if x['model_type'] == 'adapter' else x['short_study'], axis=1)
 
         # Access example
         # condition = ((df['short_study'] == 'ROBERTA') & (df['version'] == 'v01') & (df['task'] == 'ACL-ARC'))
@@ -371,17 +426,143 @@ class TrainerAnalytics(TrainerUtilities):
         df = df.merge(df_trial_level, how='left', on=cols_trial_level, suffixes=('', '_av'))
         df.rename(columns={'eval_macro_f1_av': 'av_trial_macro_f1'}, inplace=True)
 
-        # Get the mean and max f1 average per study
         # Since in the study we aim to find the best hyperparameters, then select the max f1 average per study
-        # However, we'll start with just the mean to be conservative
-        cols_study_level = ['study']
-        df_grouped = df_trial_level.groupby(cols_study_level)['eval_macro_f1'].agg(['mean', 'max']).reset_index()
-        df_grouped.rename(columns={'mean': 'av_study_macro_f1', 'max': 'max_study_macro_f1'}, inplace=True)
-        df = df.merge(df_grouped, how='left', on=cols_study_level, suffixes=('', '_max'))
+        # Find the maximum eval_macro_f1 for each study and keep the associated trial number
+        max_df = df_trial_level.loc[df_trial_level.groupby('study')['eval_macro_f1'].idxmax()]
+        max_df = max_df[['study', 'trial', 'eval_macro_f1']]
+        max_df.rename(columns={'trial': 'trial_number_for_max_f1', 'eval_macro_f1': 'max_study_macro_f1'}, inplace=True)
+
+        best_epochs = []
+        best_trials = []
+        for row in max_df.itertuples():
+            f1_score = row.max_study_macro_f1
+            study = row.study
+            trial = row.trial_number_for_max_f1
+            # Pick any seed
+            seed = df[(df['study'] == study) & (df['trial'] == trial)]['seed'].min()
+
+            # Open folder
+            study_path = os.path.join(trainer_output_path, study, f'trial_{trial}', f'seed_{seed}', 'training_args.json')
+            training_args = self.load_json_data(study_path)
+
+            # Get learning rate, batch_size and epochs
+            learning_rate = training_args['learning_rate']
+            batch_size = training_args['per_device_train_batch_size']
+            epochs = training_args['num_train_epochs']
+
+            print(f"Study: {study}, \
+                  \n ----> F1 Score: {f1_score}, \
+                  \n ----> Trial: {trial}, Seed: {seed}, Learning Rate: {learning_rate}, Batch Size: {batch_size}, Epochs: {epochs}")
+
+
+            best_trials.append({'study': study, 'trial': trial, 'f1_score': f1_score, 'learning_rate': learning_rate, 'batch_size': batch_size, 'epochs': epochs})
+            best_epochs.append(df_epoch[(df_epoch['study'] == study) & (df_epoch['trial'] == trial)])
+
+        # Concatenate the dataframes inside best_epochs
+        best_epochs_df = pd.concat(best_epochs)
+
+        # For each short_study, create a plot of the learning curves for each seed across epochs
+        # Unique short studies
+        short_studies = best_epochs_df['short_study'].unique()
+
+        # # Set up the plot style
+        # sns.set(style="whitegrid")
+
+        # for study in short_studies:
+        #     # Filter data for the current study
+        #     study_data = best_epochs_df[best_epochs_df['short_study'] == study]
+
+        #     # Plot setup
+        #     plt.figure(figsize=(10, 6))
+        #     plt.title(f'Learning Curves for {study}')
+        #     plt.xlabel('Epoch')
+        #     plt.ylabel('Eval Loss')
+
+        #     # Plot learning curve for each seed
+        #     for seed in study_data['seed'].unique():
+        #         subset = study_data[study_data['seed'] == seed]
+        #         sns.lineplot(x='epoch', y='eval_loss', data=subset, label=f'Seed {seed}')
+
+        #     plt.legend(title='Seeds')
+        #     plt.show()
+
+
+        # Set up the plot style
+        # Set the aesthetic style of the plots
+        sns.set(style="whitegrid")
+
+        # Get unique model types
+        model_types = best_epochs_df['model_type'].unique()
+        tasks = best_epochs_df['task'].unique()
+
+        for task in tasks:
+
+            # Iterate over each model type to create a separate figure
+            for model_type in model_types:
+                # Filter data for the current model type
+                model_data = best_epochs_df[(best_epochs_df['model_type'] == model_type) & (best_epochs_df['task'] == task)]
+
+                # Get unique studies for this model type
+                studies = model_data['short_study'].unique()
+                
+                # Calculate the number of rows needed for the subplots
+                n_studies = len(studies)
+                n_rows = (n_studies + 1) // 2  # Ensure enough rows for all studies
+                
+                # Create a figure with subplots in a two-column layout
+                fig, axs = plt.subplots(n_rows, 2, figsize=(20, 6 * n_rows), sharex=True)
+                
+                # Flatten the axis array and trim any excess if the number of studies is odd
+                axs = axs.flatten()
+                for ax in axs[n_studies:]:  # Hide any unused axes
+                    ax.set_visible(False)
+
+                # Iterate over studies to create each subplot
+                for ax, study in zip(axs, studies):
+                    # Filter data for the current study
+                    study_data = model_data[model_data['short_study'] == study]
+
+                    # Plot setup for the subplot
+                    ax.set_title(f'Learning Curves for {study} ({model_type})')
+                    ax.set_xlabel('Epoch')
+                    ax.set_ylabel('Eval Macro F1')
+
+                    # Plot learning curve for each seed
+                    for seed in study_data['seed'].unique():
+                        subset = study_data[study_data['seed'] == seed]
+                        sns.lineplot(x='epoch', y='eval_macro_f1', data=subset, label=f'Seed {seed}', ax=ax)
+
+                    ax.legend(title='Seeds')
+
+                # Adjust layout
+                plt.suptitle(f'Learning Curves Overview - {model_type}\nTask - {task}', fontsize=16, fontweight='bold')
+    
+                plt.tight_layout()
+                os.makedirs(f'resources/{task}', exist_ok=True)
+                plt.savefig(f'resources/{task}/learning_curves_{model_type}.png')
+                # plt.show()
+                plt.close()
+
+
+
+        # Manual pick
+        # df[df['study'] == 'roberta-base_citation_intent_seq_bn_training_adapter_v01'][
+        #     'short_study', 'model_variant', 'model_type', 'dataset_name', 
+        #     'trial', 'seed', 'epoch', 'adapter_config_name', 'config_name', 
+        #     'version', 'train_loss', 'eval_loss', 'eval_macro_f1', 'task', 'av_trial_macro_f1']
+
+        df = df.merge(max_df, on='study', how='left')
 
         # Save for further study analysis
         os.makedirs('resources', exist_ok=True)
         df.to_csv('resources/df_final_results.csv', index=False)
+
+        # Now, retrieve the best trial parameters from trainin_output folder
+
+
+
+
+
 
         # Further processing (to be refacored)
         df['trial_order'] = df['trial']
@@ -391,9 +572,9 @@ class TrainerAnalytics(TrainerUtilities):
         for task in tasks:
             versions = df['version'].unique()
             for version in versions:
-                if version not in ['v03', 'v04', 'v05', 'v06']:
-                    # Skip as these do not update
-                    continue
+                # if version not in ['v03', 'v04', 'v05', 'v06']:
+                #     # Skip as these do not update
+                #     continue
                 print("------> Processing task: ", task, "Version: ", version)
 
                 out_dir = f'resources/{task}/{version}'
@@ -487,15 +668,21 @@ class TrainerAnalytics(TrainerUtilities):
 
         # Add benchmarks for adapters
         comparison_results_task.update({
-            'ROBERTA_SEQ_BN': df[df['short_study'] == 'TAPT']['av_study_macro_f1'].mean(),
-            'ROBERTA_DOUBLE_SEQ_BN': df[df['short_study'] == 'TAPT']['av_study_macro_f1'].mean(),
-            'DAPT_SEQ_BN': df[df['short_study'] == 'DAPT_TAPT']['av_study_macro_f1'].mean(),
-            'DAPT_DOUBLE_SEQ_BN': df[df['short_study'] == 'DAPT_TAPT']['av_study_macro_f1'].mean()})
+            'ROBERTA_SEQ_BN': df[df['short_study'] == 'TAPT']['max_study_macro_f1'].mean(),
+            'ROBERTA_DOUBLE_SEQ_BN': df[df['short_study'] == 'TAPT']['max_study_macro_f1'].mean(),
+            'DAPT_SEQ_BN': df[df['short_study'] == 'DAPT_TAPT']['max_study_macro_f1'].mean(),
+            'DAPT_DOUBLE_SEQ_BN': df[df['short_study'] == 'DAPT_TAPT']['max_study_macro_f1'].mean()})
 
         # Set the aesthetic style of the plots
         sns.set_style("whitegrid")
         plt.figure(figsize=(14, 8))
-        plt.ylim(0.4, 0.85) # Note, consider the annotations if changing these limits
+
+        min_y, max_y = 0.4, 0.85
+        if filters_dict['task'] == 'SCIERC':
+            min_y, max_y = 0.6, 0.95
+        
+        plt.ylim(min_y, max_y) # Note, consider the annotations if changing these limits
+
         ax = sns.boxplot(data=df, x='short_study', y='eval_macro_f1', hue='trial', 
             palette='Set2', order=ordered_labels)
 
@@ -508,7 +695,7 @@ class TrainerAnalytics(TrainerUtilities):
             
             if benchmark:
                 # Get the y position for the average eval_macro_f1 per study/trial
-                av_f1 = df[df['short_study'] == study]['av_study_macro_f1'].max()
+                av_f1 = df[df['short_study'] == study]['max_study_macro_f1'].max()
 
                 if study in ['ROBERTA_SEQ_BN', 'ROBERTA_DOUBLE_SEQ_BN', 'DAPT_SEQ_BN', 'DAPT_DOUBLE_SEQ_BN']:
                     # These are experiments for hyperparameter tuning, so we take the best results per trial (trial is made up of 5 seeds)
@@ -530,12 +717,12 @@ class TrainerAnalytics(TrainerUtilities):
                     av_f1_arrow_style = '->'
 
                 # Annotate the benchmark
-                plt.annotate(f'{benchmark:.2f}', (x_position, 0.5 + 0.025), textcoords="offset points", xytext=(0,10),
+                plt.annotate(f'{benchmark:.2f}', (x_position, min_y + (0.025)*2), textcoords="offset points", xytext=(0,10),
                             ha='center', va='bottom', color='red', fontweight='bold', fontsize=12,
                             arrowprops=dict(arrowstyle=benchmark_arrow_style, color='red'))
 
                 # Annotate the average eval_macro_f1
-                plt.annotate(f'{av_f1:.2f}', (x_position, 0.5 - 0.025), textcoords="offset points", xytext=(0,-15),
+                plt.annotate(f'{av_f1:.2f}', (x_position, min_y + 0.025), textcoords="offset points", xytext=(0,-15),
                             ha='center', va='top', color='green', fontweight='bold', fontsize=12,
                             arrowprops=dict(arrowstyle=av_f1_arrow_style, color='green'))
 
@@ -622,8 +809,22 @@ class TrainerOutputProcessor(TrainerUtilities):
         1==1 # breakpoint area
 
         # Manual functions for deletion
-        # self.delete_folder_and_optuna_study('cs_roberta_base_sciie_seq_bn_training_adapter_v01')
-        # self.all_studies_dict['cs_roberta_base_sciie_seq_bn_training_adapter_v01']
+        # self.delete_folder_and_optuna_study('roberta-base_sciie_seq_bn_training_adapter_v01')
+        # self.delete_folder_and_optuna_study('cs_roberta_base_sciie_double_seq_bn_training_adapter_v01')
+        # self.delete_folder_and_optuna_study('cs_roberta_base_citation_intent_double_seq_bn_training_adapter_v01')
+        # self.delete_folder_and_optuna_study('roberta-base_sciie_seq_bn_training_adapter_v01')
+        # self.delete_folder_and_optuna_study('roberta-base_sciie_seq_bn_training_adapter_v01')
+        # self.delete_folder_and_optuna_study('roberta-base_sciie_double_seq_bn_training_adapter_v01')
+        # self.delete_folder_and_optuna_study('roberta-base_citation_intent_double_seq_bn_training_adapter_v01')
+
+        # self.all_studies_dict['roberta-base_citation_intent_double_seq_bn_training_adapter_v01']
+        # self.all_studies_dict['roberta-base_sciie_seq_bn_training_adapter_v01']
+        # self.all_studies_dict['cs_roberta_base_citation_intent_double_seq_bn_training_adapter_v01']
+        # self.all_studies_dict['roberta-base_sciie_seq_bn_training_adapter_v01']
+        # self.all_studies_dict['roberta-base_citation_intent_double_seq_bn_training_adapter_v01']
+        # self.all_studies_dict['roberta-base_sciie_double_seq_bn_training_adapter_v01']
+        # self.all_studies_dict['roberta-base_citation_intent_double_seq_bn_training_adapter_v01']
+        
 
         # dsp_roberta_base_dapt_cs_tapt_citation_intent_1688_citation_intent_training_base_v03
         # dsp_roberta_base_tapt_citation_intent_1688_citation_intent_training_base_v03
