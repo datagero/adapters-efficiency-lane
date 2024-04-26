@@ -239,7 +239,7 @@ def run_process(dataset_name, seed):
     set_seed(seed)
     model_type = 'base'
     model_name = task_models[dataset_name][model_type]
-    ft_result, ad_result = train_task(dataset_name=dataset_name, dataset=dataset, model_name=model_name, model_type=model_type,
+    ft_result = train_task(dataset_name=dataset_name, dataset=dataset, model_name=model_name, model_type=model_type,
                                       num_labels=num_labels, ft_lr=1.1e-5, ad_lr=7.2e-4, seed=seed)
     results.append([seed, dataset_name, model_type, ft_result, ad_result])
     model_type = 'dapt'
@@ -270,3 +270,4 @@ def run_process(dataset_name, seed):
 
 if __name__ == "__main__":
     print('Starting process')
+

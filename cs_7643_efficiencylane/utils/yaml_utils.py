@@ -1,3 +1,8 @@
+"""
+We initialially supported yaml before moving to hydra.
+The continued pretraining configs are still on yaml, so leaving this for compatibility.
+"""
+
 import yaml
 
 def load_yaml(yaml_path):

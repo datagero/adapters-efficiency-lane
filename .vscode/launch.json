@@ -19,7 +19,7 @@
             "name": "Debug Classifier Head Training",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/cs_7643_efficiencylane/demo/finetuning/classifier_head.py",
+            "program": "${workspaceFolder}/cs_7643_efficiencylane/demo/finetuning/finetuning.py",
             "args": ["roberta-base"],
             "console": "integratedTerminal",
             "env": {
