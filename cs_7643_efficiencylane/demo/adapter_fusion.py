@@ -14,42 +14,56 @@ from demo.adapter_fusion_utils import AdapterCreator
 # CREATE THE ADAPTERS
 # ======================================================
 
-citation_adapter_creator = AdapterCreator(
-    model_type = 'base',
-    model_name = 'roberta-base',
-    dataset_name = 'citation_intent',
-    seed = 1,
-    ad_lr=7.2e-4
-)
-citation_adapter_model = citation_adapter_creator.create_and_save_adapter()
+# citation_adapter_creator = AdapterCreator(
+#     model_type = 'base',
+#     model_name = 'roberta-base',
+#     dataset_name = 'citation_intent',
+#     seed = 1,
+#     ad_lr=7.2e-4
+# )
+# citation_adapter_model = citation_adapter_creator.create_and_save_adapter()
 
-sciie_adapter_creator = AdapterCreator(
-    model_type = 'base',
-    model_name = 'roberta-base',
-    dataset_name = 'sciie',
-    seed = 1,
-    ad_lr=7.2e-4
-)
-sciie_adapter_model = sciie_adapter_creator.create_and_save_adapter()
+# sciie_adapter_creator = AdapterCreator(
+#     model_type = 'base',
+#     model_name = 'roberta-base',
+#     dataset_name = 'sciie',
+#     seed = 1,
+#     ad_lr=7.2e-4
+# )
+# sciie_adapter_model = sciie_adapter_creator.create_and_save_adapter()
+dataset_name_shortener = {
+    'citation_intent': 'ci',
+    'sciie': 'sci'
+}
+
 
 # Create Fusion
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
-loader = CSTasksDataLoader(model_name="roberta-base",
-                                  dataset_name="citation_intent",
-                                  path=f"data/citation_intent/",
-                                  checkpoint_path="data/citation_intent/processed_dataset.pt")
+# loader = CSTasksDataLoader(model_name="roberta-base",
+#                                   dataset_name="citation_intent",
+#                                   path=f"data/citation_intent/",
+#                                   checkpoint_path="data/citation_intent/processed_dataset.pt")
 
-dataset = loader.load_dataset(overwrite=False)
-
+# Locked
 citation_intent_adapter_name = 'adapter_base_citation_intent'
+citation_intent_adapter_name_short = 'ad_ci'
 sciie_adapter_name = 'adapter_base_sciie'
+sciie_adapter_name_short = 'ad_sci'
+
+# Variables
 model_type = 'base'
 model_name = 'roberta-base'
-dataset_name = 'citation_intent'
+dataset_name = 'sciie'
+dataset_name_short = dataset_name_shortener[dataset_name]
 seed = 1
-ad_lr=7.2e-4
+ad_lr=5e-5
 
+loader = CSTasksDataLoader(model_name=model_name,
+                            dataset_name=dataset_name,
+                            path=f"data/{dataset_name}/",
+                            checkpoint_path=f"data/{dataset_name}/processed_dataset.pt")
+dataset = loader.load_dataset(overwrite=False)
 
 config = RobertaConfig.from_pretrained(
     model_name,
@@ -62,10 +76,18 @@ fusion_name = model_type+"_"+dataset_name
 fusion_model = RobertaAdapterModel.from_pretrained(model_name,config=config)
 fusion_model.to(device)
 
-fusion_model.load_adapter(f'./saved/{citation_intent_adapter_name}', with_head=False)
-fusion_model.load_adapter(f'./saved/{sciie_adapter_name}', with_head=False)
-fusion_model.add_adapter_fusion(ac.Fuse(citation_intent_adapter_name, sciie_adapter_name))
-fusion_model.set_active_adapters(ac.Fuse(citation_intent_adapter_name, sciie_adapter_name))
+fusion_model.load_adapter(f'./saved/{citation_intent_adapter_name}', load_as=citation_intent_adapter_name_short, with_head=False)
+fusion_model.load_adapter(f'./saved/{sciie_adapter_name}', load_as=sciie_adapter_name_short, with_head=False)
+adapter_setup = [
+    [
+        citation_intent_adapter_name_short,
+        sciie_adapter_name_short,
+    ]
+]
+fusion_model.add_adapter_fusion(adapter_setup[0], "dynamic")
+fusion_model.train_adapter_fusion(adapter_setup)
+# fusion_model.add_adapter_fusion(ac.Fuse(citation_intent_adapter_name_short, sciie_adapter_name_short))
+# fusion_model.set_active_adapters(ac.Fuse(citation_intent_adapter_name_short, sciie_adapter_name_short))
 
 
 # Add a matching classification head
@@ -75,17 +97,17 @@ fusion_model.add_classification_head(
     overwrite_ok=True
 )
 
-fusion_model.train_adapter_fusion(ac.Fuse(citation_intent_adapter_name, sciie_adapter_name))
+fusion_model.train_adapter_fusion(ac.Fuse(citation_intent_adapter_name_short, sciie_adapter_name_short))
 
 fusion_training_args = TrainingArguments(
     learning_rate=ad_lr,
     num_train_epochs=10,
     per_device_train_batch_size=32,
     per_device_eval_batch_size=32,
-    logging_dir=f"./{seed}_{dataset_name}_{model_type}_fusion_logs",
+    logging_dir=f"./saved/{seed}_{dataset_name}_{model_type}_fn_logs_lrlow",
     warmup_steps=500,
     logging_steps=10,
-    output_dir=f"./{seed}_{dataset_name}_{model_type}_fusion_output",
+    output_dir=f"./saved/{seed}_{dataset_name}_{model_type}_fn_out_lrlow",
     overwrite_output_dir=True,
     evaluation_strategy="epoch",
     save_strategy="epoch",
