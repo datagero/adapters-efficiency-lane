@@ -1,5 +1,7 @@
 """
-These are the utility functions that are used to process the training output data and generate visualizations.
+These are the utility functions made on-the-go for project demands.
+No guarantees of reproduction and are just commited for reference purposes.
+Used to process the training output data and generate visualizations.
 Feel free to use them as a reference to build your own utility functions.
 """
 
@@ -15,9 +17,8 @@ import seaborn as sns
 trials_dict = {'adapter': 10, 'model': 5}
 seeds_dict = {'adapter': 5, 'model': 5}
 
-# Define a Python function that generates the LaTeX table for each unique task from the CSV data.
+# Generates the LaTeX table for each unique task from the CSV data.
 def generate_latex_tables_from_csv(csv_data):
-    # Read the CSV data into a pandas DataFrame
     df = pd.read_csv(csv_data)
 
     # Function to format a single row in LaTeX syntax
@@ -174,14 +175,14 @@ class TrainerUtilities:
             model_variant = parts[2]
             dataset_name = parts[3]
             config_name = parts[4]
-            adapter_config_name = None
+            adapter_config_name = None # ignore to keep consistent
             study_suffix = parts[5]
             version = study_suffix.split('_')[-1]
         elif model_type == 'adapter':
             # Extracting for the adapter training
             model_variant = parts[2]
             dataset_name = parts[3]
-            adapter_config_name = parts[4] # ignore to keep consistent
+            adapter_config_name = parts[4]
             config_name = parts[5]
             study_suffix = parts[6]
             version = study_suffix.split('_')[-1]
@@ -193,7 +194,7 @@ class TrainerUtilities:
     def get_in_scope_studies(self):
         study_dict = {}
         for version in ["v01"]:
-            # Only scope low-resources
+            # Only scope low-resource datasets
             study_dict.update(self.container_of_expected_runs(dataset="citation_intent", version=version))
             study_dict.update(self.container_of_expected_runs(dataset="sciie", version=version))
             study_dict.update(self.container_of_expected_runs(dataset="hyperpartisan_news", version=version))
@@ -203,7 +204,11 @@ class TrainerUtilities:
             study_dict.update(self.container_of_expected_runs(dataset="chemprot", version=version))
             # study_dict.update(self.container_of_expected_runs(dataset="rct-20k", version=version))
 
-        # Models might stop being traind before adapters
+        for version in ["v01_best"]:
+            study_dict.update(self.container_of_expected_runs(dataset="citation_intent", version=version))
+            study_dict.update(self.container_of_expected_runs(dataset="sciie", version=version))
+
+        # Models might stop being trained before adapters
         in_scope = {}
         for study_name, command in study_dict.items():
             model_type = self.get_model_type(study_name)
@@ -312,6 +317,11 @@ class TrainerUtilities:
         completion_check = {}
         
         for study_name, trials in study_data.items():
+            if 'v01_best' in study_name:
+                # Assume this is completed
+                completion_check[study_name] = 'complete'
+                continue
+
             # Using regex to dynamically check for the ending pattern and extract the version number
             model_type = self.get_model_type(study_name)
 
@@ -386,6 +396,11 @@ class TrainerUtilities:
 
         completed_studies = []
         for study_name in self.optuna_studies:
+            if 'v01_best' in study_name:
+                # Assume this is completed
+                completed_studies.append(study_name)
+                continue
+
             # if 'chemprot' in study_name:
             #     continue
             if study_name.endswith('test') or study_name.endswith('gold') or study_name.endswith('backup'):
@@ -608,7 +623,7 @@ class TrainerAnalytics(TrainerUtilities):
         max_df = max_df.sort_values(by=base_cols[1:])
 
 
-        performance_table_cols = ['task', 'short_study']
+        performance_table_cols = ['task', 'short_study', 'version']
         metric_cols = ['av_trial_macro_f1', 'std_trial_macro_f1']
         adapter_pfeiffer_view = max_df[max_df['adapter_name'] == 'Pfeiffer']
         adapter_houlsby_view = max_df[max_df['adapter_name'] == 'Houlsby']
@@ -661,6 +676,9 @@ class TrainerAnalytics(TrainerUtilities):
             f1_pfeiffer = row.f1_pfeiffer
             f1_houlsby = row.f1_houlsby
 
+            if row.version == 'best':
+                base_model = base_model + '_best'
+
             std_f1_finetuning = row.std_f1_finetuning
             std_f1_pfeiffer = row.std_f1_pfeiffer
             std_f1_houlsby = row.std_f1_houlsby
@@ -681,12 +699,12 @@ class TrainerAnalytics(TrainerUtilities):
                 'F1': f1_houlsby, 'std_dev': std_f1_houlsby}
         
         # Save updated json
-        with open('comparative_outputs/dont-stop-pretraining-model-outputs.json', 'w') as file:
+        with open('comparative_outputs/dont-stop-pretraining-model-outputs_v02.json', 'w') as file:
             json.dump(comparative_outputs, file, indent=4)
 
 
         # Load the comparative outputs
-        with open('comparative_outputs/dont-stop-pretraining-model-outputs.json', 'r') as file:
+        with open('comparative_outputs/dont-stop-pretraining-model-outputs_v02.json', 'r') as file:
             comparative_outputs = json.load(file)
         
         # Structure the data for the latex tables
@@ -694,17 +712,19 @@ class TrainerAnalytics(TrainerUtilities):
         for domain, domain_data in comparative_outputs.items():
             for task, task_data in domain_data.items():
                 performance_data = task_data['performance']
-                for base_model in ['ROBERTA', 'TAPT', 'DAPT', 'DAPT_TAPT']:
+                for base_model in ['ROBERTA', 'TAPT', 'DAPT', 'DAPT_TAPT', 'ROBERTA_best', 'TAPT_best', 'DAPT_best', 'DAPT_TAPT_best']:
                     if 'best_finetuning' not in performance_data:
                         continue
 
                     if base_model not in performance_data['best_finetuning']:
                         continue
-
-                    baseline_data = performance_data['baseline'][base_model]
-                    finetuning_data = performance_data['best_finetuning'][base_model]
-                    pfeiffer_data = performance_data['best_pfeiffer'][base_model]
-                    houlsby_data = performance_data['best_houlsby'][base_model]
+                    
+                    import numpy as np
+                    # Create defaults as workaround to support v01_best
+                    baseline_data = performance_data['baseline'].get(base_model, {'F1': np.nan, 'std_dev': np.nan})
+                    finetuning_data = performance_data['best_finetuning'].get(base_model, {'F1': np.nan, 'std_dev': np.nan})
+                    pfeiffer_data = performance_data['best_pfeiffer'].get(base_model, {'F1': np.nan, 'std_dev': np.nan})
+                    houlsby_data = performance_data['best_houlsby'].get(base_model, {'F1': np.nan, 'std_dev': np.nan})
 
                     contents = {
                         'task': task,
@@ -727,11 +747,11 @@ class TrainerAnalytics(TrainerUtilities):
 
 
         latex_tables = generate_latex_tables_from_csv('resources/tmp_max_df2.csv')
-        print(latex_tables['ACL-ARC'].replace('DAPT_TAPT', 'DAPT\\_TAPT'))
-        print(latex_tables['SCIERC'].replace('DAPT_TAPT', 'DAPT\\_TAPT'))
-        print(latex_tables['HYPERPARTISAN'].replace('DAPT_TAPT', 'DAPT\\_TAPT'))
-        print(latex_tables['IMDB'].replace('DAPT_TAPT', 'DAPT\\_TAPT'))
-        print(latex_tables['CHEMPROT'].replace('DAPT_TAPT', 'DAPT\\_TAPT'))
+        print(latex_tables['ACL-ARC'].replace('DAPT_TAPT', 'DAPT\\_TAPT').replace('_best', '\\_best'))
+        print(latex_tables['SCIERC'].replace('DAPT_TAPT', 'DAPT\\_TAPT').replace('_best', '\\_best'))
+        print(latex_tables['HYPERPARTISAN'].replace('DAPT_TAPT', 'DAPT\\_TAPT').replace('_best', '\\_best'))
+        print(latex_tables['IMDB'].replace('DAPT_TAPT', 'DAPT\\_TAPT').replace('_best', '\\_best'))
+        print(latex_tables['CHEMPROT'].replace('DAPT_TAPT', 'DAPT\\_TAPT').replace('_best', '\\_best'))
 
 
         best_epochs = []
