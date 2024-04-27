@@ -1,15 +1,14 @@
 #!/bin/bash
 
+#SBATCH -AdapterTraining                    # Job name
+#SBATCH -N1 --ntasks-per-node=4                 # Number of nodes and cores per node required
+#SBATCH --mem-per-cpu=52G                        # Memory per core
+#SBATCH --time=16:00:00                         # Duration of the job (Ex: 15 mins)
+#SBATCH -oReport-%j.out                         # Combined output and error messages file
+#SBATCH --mail-type=BEGIN,END,FAIL              # Mail preferences
+#SBATCH --mail-user=avizcaino3@gatech.edu        # E-mail address for notifications
 
-# Example run:
-# bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh roberta-base citation_intent pfeiffer base_v01
-
-# Example kill
-# ps aux --sort=-%cpu | head -n 6
-# or
-# ps aux | grep "cs_7643_efficiencylane/utils/run_parallel.sh"
-# pkill -P <parent_id>
-# kill <process_id>
+cd /home/hice1/avizcaino3/scratch/repos/CS-7643-EfficiencyLane
 
 # Number of times to run the script in parallel 
 # (i.e., enables Optuna trials in parallel)
@@ -27,7 +26,7 @@ OVERWRITE=${7:0}
 for i in $(seq 1 $NUM_RUNS)
 do
     # Pass the model_variant argument to the Python script
-    python cs_7643_efficiencylane/demo/adapters/new_adapter.py \
+    srun python cs_7643_efficiencylane/demo/adapters/new_adapter.py \
         "$MODEL_VARIANT" \
         --dataset_name "$DATASET_NAME" \
         --adapter_config_name "$ADAPTER_CONFIG_NAME" \

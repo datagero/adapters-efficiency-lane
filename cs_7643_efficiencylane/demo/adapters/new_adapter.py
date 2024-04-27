@@ -42,12 +42,12 @@ if __name__ == "__main__":
         allenai/dsp_roberta_base_dapt_cs_tapt_citation_intent_1688 is the published (2020) pre-trained with dapt and then with tapt data.
     """
     parser = argparse.ArgumentParser(description='Training Classifier Head for pre-trained model.')
-    parser.add_argument('model_variant', type=str, default='allenai/cs_roberta_base', help='the model variant to use (default: roberta-base)')
-    parser.add_argument('--dataset_name', type=str, default='ag', help='the name of the dataset')
+    parser.add_argument('model_variant', type=str, default='roberta-base', help='the model variant to use (default: roberta-base)')
+    parser.add_argument('--dataset_name', type=str, default='citation_intent', help='the name of the dataset')
     parser.add_argument('--adapter_config_name', type=str, default='seq_bn', help='the name of the adapter configuration file')
-    parser.add_argument('--study_suffix', type=str, default='default_test', help='the suffix to add to the study name')
+    parser.add_argument('--study_suffix', type=str, default='adapter_v01_best', help='the suffix to add to the study name')
     parser.add_argument('--config_path', type=str, default='../../training_configs', help='the path to training configuration files')
-    parser.add_argument('--config_name', type=str, default='adapter_default_test', help='the name of the configuration file')
+    parser.add_argument('--config_name', type=str, default='roberta-base_citation_intent_seq_bn', help='the name of the configuration file')
     parser.add_argument('--parallelism', type=str, default="0", help='')
     parser.add_argument('--overwrite', type=str, default="0", help='')
     parser.add_argument('--job_sequence', type=int, default=1, help='the number of job for parallel runs (default: 1)')

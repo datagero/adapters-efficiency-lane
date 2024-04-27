@@ -12,4 +12,5 @@ def macro_f1(p: EvalPrediction):
 
 def micro_f1(p: EvalPrediction):
     preds = np.argmax(p.predictions, axis=1)
-    return {"micro_f1": f1_score(p.label_ids, preds, average='micro')}
+    # Still report it as macro so we do not have to change the analytics structure
+    return {"macro_f1": f1_score(p.label_ids, preds, average='micro')}
