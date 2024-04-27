@@ -46,26 +46,26 @@ if __name__ == "__main__":
     parser.add_argument('--study_suffix', type=str, default='default_test', help='the suffix to add to the study name')
     parser.add_argument('--config_path', type=str, default='../../training_configs', help='the path to training configuration files')
     parser.add_argument('--config_name', type=str, default='finetuning_test', help='the name of the configuration file')
-    parser.add_argument('--parallelism', type=int, default=-1, help='')
+    parser.add_argument('--parallelism', type=str, default="0", help='')
+    parser.add_argument('--overwrite', type=str, default="0", help='')
     parser.add_argument('--job_sequence', type=int, default=1, help='the number of job for parallel runs (default: 1)')
-    parser.add_argument('--overwrite', type=bool, default=True, help='')
     args = parser.parse_args()
+
+    logger.info(f"Arguments: {args}")
 
     model_variant = args.model_variant
     dataset_name = args.dataset_name
     config_path = args.config_path
     config_name = args.config_name
     study_suffix = args.study_suffix
-    paralellism = True if args.parallelism==1 else False
+    paralellism = True if args.parallelism=="1" else False
+    overwrite = True if args.overwrite=="1" else False
     job_sequence = args.job_sequence
-    overwrite = args.overwrite
 
     study_config_path = os.path.join(config_path, study_suffix)
 
-    logger.info(f"Inputs: {model_variant}, {dataset_name}, {config_path}, {config_name}, {study_suffix}")
-
     # print(f"Starting training for Model Variant: {model_variant} with Config: {config_name} loaded from {config_path}")
-    logger.info(f"Starting training for Model Variant: {model_variant} with Config: {config_name} loaded from {study_config_path}, parallelism={paralellism}")
+    logger.info(f"Starting training for Model Variant: {model_variant} for {dataset_name} with Config: {config_name} loaded from {study_config_path}")
 
     with initialize(config_path=study_config_path):
         cfg = compose(config_name=config_name)

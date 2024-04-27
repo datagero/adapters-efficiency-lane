@@ -23,7 +23,7 @@ from adapters import AdapterTrainer, RobertaAdapterModel
 from utils import compute_metrics
 from data_loaders.citation_intent_data_loader import CSTasksDataLoader
 
-def handle_trial(model_variant, num_labels, dataset_name, training_args, adapter_config_name, dataset, trial, trainer_type):
+def handle_trial(model_variant, num_labels, dataset_name, training_args, adapter_config_name, dataset, trial, trainer_type, compute_metric):
     # if 1 == 1:
     #     raise NotImplementedError("This function is not implemented. Please implement the function.")
     training_args_class = TrainingArguments(**training_args)
@@ -37,7 +37,7 @@ def handle_trial(model_variant, num_labels, dataset_name, training_args, adapter
         raise ValueError("Invalid training type. Supported types: model, adapter")
     
     # Run the trial with the created model
-    return run_trial_for_seed(model, dataset, training_args_class, trial, trainer_type)
+    return run_trial_for_seed(model, dataset, training_args_class, trial, trainer_type, compute_metric)
 
 
 def get_dataset(dataset_name):
@@ -102,7 +102,7 @@ def build_classification_model(model_variant, num_labels):
 
     return model
 
-def build_trainer(model, dataset, training_args_class, trainer_type, compute_metric='macro_f1'):
+def build_trainer(model, dataset, training_args_class, trainer_type, compute_metric):
 
     if compute_metric == 'macro_f1':
         compute_metrics_fn = compute_metrics.macro_f1
@@ -130,11 +130,11 @@ def build_trainer(model, dataset, training_args_class, trainer_type, compute_met
     else:
         raise ValueError("Invalid training type. Supported types: model, adapter")
 
-def run_trial_for_seed(model, dataset, training_args_class, trial, trainer_type='model'):
+def run_trial_for_seed(model, dataset, training_args_class, trial, trainer_type='model', compute_metric='macro_f1'):
     # logger.info(f"Starting process for: Seed={seed}: Trial {trial.number}")
     with mlflow.start_run(nested=True) as run:
         
-        trainer = build_trainer(model, dataset, training_args_class, trainer_type)
+        trainer = build_trainer(model, dataset, training_args_class, trainer_type, compute_metric)
         trainer.train()
         eval_results = trainer.evaluate(dataset["test"])
 
@@ -149,6 +149,24 @@ def run_trial_for_seed(model, dataset, training_args_class, trial, trainer_type=
         # Save the TrainingArguments
         with open(os.path.join(training_args_class.output_dir, "training_args.json"), "w") as json_file:
             json.dump(training_args_class.to_dict(), json_file)
+
+    output_dir = training_args_class.output_dir
+    if 'adapter_v01_best' in output_dir:
+        # Note, this makes assumptions about model and base output dir
+        # for instance, assumes the base output directory is 'training_output'
+        out_fldr_base = "./adapters"
+        if output_dir.startswith('./'):
+            output_dir = output_dir.replace('./', '')
+
+        out_fldr = f"{out_fldr_base}/{output_dir}"
+        if not os.path.exists(out_fldr):
+            os.makedirs(out_fldr)
+
+        # assuming model only has one adapter attached
+        adapter_name = list(model.adapters_config.adapters.keys())[0]
+
+        logger.info(f"Saving adapter {adapter_name} to {out_fldr}")
+        model.save_adapter(out_fldr, adapter_name)
 
     logger.info(f"{trial.study.study_name} >> Seed={training_args_class.seed}: Trial {trial.number} finished: Eval Loss {eval_results['eval_loss']}, Eval F1: {eval_results['eval_macro_f1']}")
     return eval_results
@@ -182,7 +200,8 @@ def run_study_experiments(cfg: DictConfig, model_variant, dataset_name, study_na
             'adapter_config_name': adapter_config_name,
             'dataset': dataset,
             'trial': trial,
-            'trainer_type': trainer_type
+            'trainer_type': trainer_type,
+            'compute_metric': cfg.optuna.trainer_objective
         }
 
         if parallelism:
@@ -269,6 +288,6 @@ def run_study_experiments(cfg: DictConfig, model_variant, dataset_name, study_na
     # each time evaluating the objective function with a different set of hyperparameters. 
     # These trials could be run sequentially or in parallel.
     # We could define an optimization algorithm for hyperparameter search. e.g., TPE, Random Search, Grid Search, etc.
-    logger.info(f"Optuna study {study_name} objective is set to: {cfg.optuna.direction} the {cfg.optuna.objective}")
+    logger.info(f"Optuna study {study_name} objective is set to: {cfg.optuna.direction} the {cfg.optuna.objective} for the trainer {cfg.optuna.trainer_objective}.")
     study = mlops.create_or_load_study(study_name, storage, direction=cfg.optuna.direction)
     study.optimize(objective, n_trials=cfg.optuna.n_trials)
