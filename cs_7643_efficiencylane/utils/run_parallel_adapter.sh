@@ -1,5 +1,6 @@
 #!/bin/bash
 
+
 # Example run:
 # bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh roberta-base citation_intent pfeiffer base_v01
 

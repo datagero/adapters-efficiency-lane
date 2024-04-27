@@ -9,7 +9,8 @@ training_args:
 optuna:
   n_trials: 2
   n_seeds: 2
-
+  trainer_objective: micro_f1
+  
 optuna_search_space:
   learning_rate:
     low: 1e-5

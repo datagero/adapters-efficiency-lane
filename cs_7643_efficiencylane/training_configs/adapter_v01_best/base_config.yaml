@@ -17,6 +17,7 @@ optuna:
   n_seeds: 5
   direction: maximize
   objective: f1
+  trainer_objective: macro_f1
 
 #TODO NOW: Make sure all the v03 models are run for 6 trials
 hydra:

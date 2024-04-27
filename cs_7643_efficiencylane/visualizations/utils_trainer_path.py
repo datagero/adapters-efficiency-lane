@@ -90,20 +90,32 @@ class TrainerUtilities:
                 f"cs_roberta_base_{dataset}_double_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh allenai/cs_roberta_base {dataset} double_seq_bn adapter_default adapter_{version}"
             }
 
+            # The best adapters
+            bash_commands_dict.update({
+                f"roberta-base_{dataset}_seq_bn_training_adapter_{version}_best": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh roberta-base {dataset} seq_bn roberta-base_{dataset}_seq_bn adapter_{version}_best",
+                f"roberta-base_{dataset}_double_seq_bn_training_adapter_{version}_best": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh roberta-base {dataset} double_seq_bn roberta-base_{dataset}_double_seq_bn adapter_{version}_best",
+                f"cs_roberta_base_{dataset}_seq_bn_training_adapter_{version}_best": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh allenai/cs_roberta_base {dataset} seq_bn cs_roberta_base_{dataset}_seq_bn adapter_{version}_best",
+                f"cs_roberta_base_{dataset}_double_seq_bn_training_adapter_{version}_best": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh allenai/cs_roberta_base {dataset} double_seq_bn cs_roberta_base_{dataset}_double_seq_bn adapter_{version}_best"
+            })
+
             if dataset == 'citation_intent':
                 bash_commands_dict.update({
                     f"mlm_model_{dataset}_training_model_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh ./mlm_model {dataset} finetuning model_{version}",
                     f"dsp_roberta_base_tapt_citation_intent_1688_{dataset}_training_model_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh allenai/dsp_roberta_base_tapt_citation_intent_1688 {dataset} finetuning model_{version}",
-                    f"dsp_roberta_base_dapt_cs_tapt_citation_intent_1688_{dataset}_training_model_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh allenai/dsp_roberta_base_dapt_cs_tapt_citation_intent_1688 {dataset} finetuning model_{version}",
                     f"dsp_roberta_base_tapt_citation_intent_1688_{dataset}_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh allenai/dsp_roberta_base_tapt_citation_intent_1688 {dataset} seq_bn adapter_default adapter_{version}",
                     f"dsp_roberta_base_tapt_citation_intent_1688_{dataset}_double_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh allenai/dsp_roberta_base_tapt_citation_intent_1688 {dataset} double_seq_bn adapter_default adapter_{version}",
+                    f"dsp_roberta_base_dapt_cs_tapt_citation_intent_1688_{dataset}_training_model_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh allenai/dsp_roberta_base_dapt_cs_tapt_citation_intent_1688 {dataset} finetuning model_{version}",
                     f"dsp_roberta_base_dapt_cs_tapt_citation_intent_1688_{dataset}_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh allenai/dsp_roberta_base_dapt_cs_tapt_citation_intent_1688 {dataset} seq_bn adapter_default adapter_{version}",
                     f"dsp_roberta_base_dapt_cs_tapt_citation_intent_1688_{dataset}_double_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh allenai/dsp_roberta_base_dapt_cs_tapt_citation_intent_1688 {dataset} double_seq_bn adapter_default adapter_{version}"
                 })
             if dataset == 'sciie':
                 bash_commands_dict.update({
                     f"dsp_roberta_base_tapt_sciie_3219_{dataset}_training_model_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh allenai/dsp_roberta_base_tapt_sciie_3219 {dataset} finetuning model_{version}",
-                    f"dsp_roberta_base_dapt_cs_tapt_sciie_3219_{dataset}_training_model_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh allenai/dsp_roberta_base_dapt_cs_tapt_sciie_3219 {dataset} finetuning model_{version}"
+                    f"dsp_roberta_base_tapt_sciie_3219_{dataset}_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh allenai/dsp_roberta_base_tapt_sciie_3219 {dataset} seq_bn adapter_default adapter_{version}",
+                    f"dsp_roberta_base_tapt_sciie_3219_{dataset}_double_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh allenai/dsp_roberta_base_tapt_sciie_3219 {dataset} double_seq_bn adapter_default adapter_{version}",
+                    f"dsp_roberta_base_dapt_cs_tapt_sciie_3219_{dataset}_training_model_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh allenai/dsp_roberta_base_dapt_cs_tapt_sciie_3219 {dataset} finetuning model_{version}",
+                    f"dsp_roberta_base_dapt_cs_tapt_sciie_3219_{dataset}_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh allenai/dsp_roberta_base_dapt_cs_tapt_sciie_3219 {dataset} seq_bn adapter_default adapter_{version}",
+                    f"dsp_roberta_base_dapt_cs_tapt_sciie_3219_{dataset}_double_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh allenai/dsp_roberta_base_dapt_cs_tapt_sciie_3219 {dataset} double_seq_bn adapter_default adapter_{version}"
                 })
 
         if dataset in ['hyperpartisan_news', 'ag']:
@@ -114,13 +126,39 @@ class TrainerUtilities:
                 f"news_roberta_base_{dataset}_double_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh allenai/news_roberta_base {dataset} double_seq_bn adapter_default adapter_{version}",
             })
 
+            if dataset in ['hyperpartisan_news']:
+                bash_commands_dict.update({
+                    f"roberta-base_{dataset}_training_model_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh roberta-base {dataset} finetuning model_{version}"
+                })
+
         if dataset in ['amazon', 'imdb']:
 
             bash_commands_dict.update({
-                f"reviews_roberta_base{dataset}_training_model_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh allenai/reviews_roberta_base {dataset} finetuning model_{version}",
-                f"reviews_roberta_base{dataset}_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh allenai/reviews_roberta_base {dataset} seq_bn adapter_default adapter_{version}",
-                f"reviews_roberta_base{dataset}_double_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh allenai/reviews_roberta_base {dataset} double_seq_bn adapter_default adapter_{version}",
+                f"reviews_roberta_base_{dataset}_training_model_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh allenai/reviews_roberta_base {dataset} finetuning model_{version}",
+                f"reviews_roberta_base_{dataset}_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh allenai/reviews_roberta_base {dataset} seq_bn adapter_default adapter_{version}",
+                f"reviews_roberta_base_{dataset}_double_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh allenai/reviews_roberta_base {dataset} double_seq_bn adapter_default adapter_{version}",
             })
+
+        if dataset in ['chemprot', 'rct-20k']:
+            # Need to overwrite base training as it requires different config as it maximises micro-f1 instead of macro-f1
+            bash_commands_dict.update({
+                f"roberta-base_{dataset}_training_model_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh roberta-base {dataset} finetuning_biomed model_{version}",
+                f"biomed_roberta_base_{dataset}_training_model_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh allenai/biomed_roberta_base {dataset} finetuning_biomed model_{version}",
+                f"roberta-base_{dataset}_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh roberta-base {dataset} seq_bn adapter_biomed adapter_{version}",
+                f"roberta-base_{dataset}_double_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh roberta-base {dataset} double_seq_bn adapter_biomed adapter_{version}",
+                f"biomed_roberta_base_{dataset}_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh allenai/biomed_roberta_base {dataset} seq_bn adapter_biomed adapter_{version}",
+                f"biomed_roberta_base_{dataset}_double_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh allenai/biomed_roberta_base {dataset} double_seq_bn adapter_biomed adapter_{version}",
+            })
+
+            if dataset in ['chemprot']:
+                bash_commands_dict.update({
+                    f"dsp_roberta_base_tapt_chemprot_4169_{dataset}_training_model_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh allenai/dsp_roberta_base_tapt_chemprot_4169 {dataset} finetuning_biomed model_{version}",
+                    f"dsp_roberta_base_dapt_biomed_tapt_chemprot_4169_{dataset}_training_model_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel.sh allenai/dsp_roberta_base_dapt_biomed_tapt_chemprot_4169 {dataset} finetuning_biomed model_{version}",
+                    f"dsp_roberta_base_tapt_chemprot_4169_{dataset}_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh allenai/dsp_roberta_base_tapt_chemprot_4169 {dataset} seq_bn adapter_biomed adapter_{version}",
+                    f"dsp_roberta_base_tapt_chemprot_4169_{dataset}_double_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh allenai/dsp_roberta_base_tapt_chemprot_4169 {dataset} double_seq_bn adapter_biomed adapter_{version}",
+                    f"dsp_roberta_base_dapt_biomed_tapt_chemprot_4169_{dataset}_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh allenai/dsp_roberta_base_dapt_biomed_tapt_chemprot_4169 {dataset} seq_bn adapter_biomed adapter_{version}",
+                    f"dsp_roberta_base_dapt_biomed_tapt_chemprot_4169_{dataset}_double_seq_bn_training_adapter_{version}": f"bash cs_7643_efficiencylane/utils/run_parallel_adapter.sh allenai/dsp_roberta_base_dapt_biomed_tapt_chemprot_4169 {dataset} double_seq_bn adapter_biomed adapter_{version}",
+                })
 
         for study, command in bash_commands_dict.items():
             bash_commands_dict[study] = bash_commands_dict[study] + f" {parallelism}"
@@ -155,22 +193,15 @@ class TrainerUtilities:
     def get_in_scope_studies(self):
         study_dict = {}
         for version in ["v01"]:
+            # Only scope low-resources
             study_dict.update(self.container_of_expected_runs(dataset="citation_intent", version=version))
-
-        for version in ["v01"]:
             study_dict.update(self.container_of_expected_runs(dataset="sciie", version=version))
-
-        for version in ["v01"]:
             study_dict.update(self.container_of_expected_runs(dataset="hyperpartisan_news", version=version))
-
-        for version in ["v01"]:
-            study_dict.update(self.container_of_expected_runs(dataset="ag", version=version))
-
-        for version in ["v01"]:
-            study_dict.update(self.container_of_expected_runs(dataset="amazon", version=version))
-
-        for version in ["v01"]:
-            study_dict.update(self.container_of_expected_runs(dataset="imdb", version=version))
+            # study_dict.update(self.container_of_expected_runs(dataset="ag", version=version))
+            # study_dict.update(self.container_of_expected_runs(dataset="amazon", version=version))
+            # study_dict.update(self.container_of_expected_runs(dataset="imdb", version=version))
+            study_dict.update(self.container_of_expected_runs(dataset="chemprot", version=version))
+            # study_dict.update(self.container_of_expected_runs(dataset="rct-20k", version=version))
 
         # Models might stop being traind before adapters
         in_scope = {}
@@ -252,7 +283,7 @@ class TrainerUtilities:
         # Get the incomplete studies
         complete_studies = []
         for study, status in study_completion.items():
-            if study == 'roberta-base_sciie_seq_bn_training_adapter_v01':
+            if study == 'roberta-base_chemprot_seq_bn_training_adapter_v01':
                 1==1
             if status == 'complete':
                 complete_studies.append(study)
@@ -265,6 +296,8 @@ class TrainerUtilities:
 
         # add the two to a single set -> To remediate at some point
         remediate_set = complete_not_in_optuna.union(optuna_not_in_trainer)
+
+        complete_studies = [x for x in complete_studies if x in self.all_studies_dict]
 
         return list(set(complete_studies) - remediate_set), remediate_set
 
@@ -351,8 +384,8 @@ class TrainerUtilities:
 
         completed_studies = []
         for study_name in self.optuna_studies:
-            if 'chemprot' in study_name:
-                continue
+            # if 'chemprot' in study_name:
+            #     continue
             if study_name.endswith('test') or study_name.endswith('gold') or study_name.endswith('backup'):
                 continue
             study = self.load_optuna_study(study_name)
@@ -462,7 +495,10 @@ class TrainerAnalytics(TrainerUtilities):
             ('allenai/dsp_roberta_base_tapt_citation_intent_1688', 'TAPT'),
             ('allenai/dsp_roberta_base_tapt_sciie_3219', 'TAPT'),
             ('allenai/news_roberta_base', 'DAPT'),
-            ('allenai/reviews_roberta_base', 'DAPT')
+            ('allenai/reviews_roberta_base', 'DAPT'),
+            ('allenai/biomed_roberta_base', 'DAPT'),
+            ('allenai/dsp_roberta_base_tapt_chemprot_4169', 'TAPT'),
+            ('allenai/dsp_roberta_base_dapt_biomed_tapt_chemprot_4169', 'DAPT_TAPT'),
             # ('./mlm_model', 'MLM-Base'),
         ])
 
@@ -502,7 +538,7 @@ class TrainerAnalytics(TrainerUtilities):
         eval_cols = ['eval_loss', 'eval_macro_f1']
         
         # join dataframes
-        df = pd.merge(df_training[common + train_cols], df_evaluation[common + eval_cols], on=common, suffixes=('_train', '_eval'))
+        df_final = pd.merge(df_training[common + train_cols], df_evaluation[common + eval_cols], on=common, suffixes=('_train', '_eval'))
 
         # # Now create new column, task, with the new value
         # df['task'] = df['dataset_name'].map(dataset_name_map)
@@ -526,7 +562,7 @@ class TrainerAnalytics(TrainerUtilities):
         # df_epoch['short_study'] = df_epoch.apply(lambda x: f"{x['short_study']}_{x['adapter_config_name'].upper()}" if x['model_type'] == 'adapter' else x['short_study'], axis=1)
 
         # drop model_variant = ./mlm_model
-        df = df[df['model_variant'] != './mlm_model']
+        df_final = df_final[df_final['model_variant'] != './mlm_model']
         df_epoch = df_epoch[df_epoch['model_variant'] != './mlm_model']
 
 
@@ -548,7 +584,7 @@ class TrainerAnalytics(TrainerUtilities):
 
         #  Get the average eval_macro_f1 per trial across seeds, and the standard deviation
         cols_trial_level = ['study', 'trial']
-        df_trial_level = df.groupby(cols_trial_level)['eval_macro_f1'].agg(['max', 'mean', 'std']).reset_index()
+        df_trial_level = df_final.groupby(cols_trial_level)['eval_macro_f1'].agg(['max', 'mean', 'std']).reset_index()
         df_trial_level.rename(columns={'max': 'max_trial_macro_f1', 'mean': 'av_trial_macro_f1', 'std': 'std_trial_macro_f1'}, inplace=True)
         df_view = df.merge(df_trial_level, how='left', on=cols_trial_level)
 
@@ -556,7 +592,6 @@ class TrainerAnalytics(TrainerUtilities):
         # Since in the study we aim to find the best hyperparameters, then select the max f1 average per study
         # Find the maximum av_trial_macro_f1 for each study and keep the associated trial number
         base_cols = ['study', 'task', 'model_type', 'short_study', 'adapter_name', 'version', 'trial']
-        metrics = ['max_trial_macro_f1', 'av_trial_macro_f1', 'std_trial_macro_f1']
 
         # Base dataframe
         df_base = df_view[base_cols].drop_duplicates()
@@ -566,7 +601,7 @@ class TrainerAnalytics(TrainerUtilities):
 
     
         # drop study col for cleanness
-        max_df.drop('study', axis=1, inplace=True)
+        # max_df.drop('study', axis=1, inplace=True)
         # Order by base_cols
         max_df = max_df.sort_values(by=base_cols[1:])
 
@@ -576,10 +611,10 @@ class TrainerAnalytics(TrainerUtilities):
         adapter_pfeiffer_view = max_df[max_df['adapter_name'] == 'Pfeiffer']
         adapter_houlsby_view = max_df[max_df['adapter_name'] == 'Houlsby']
         model_view = max_df[max_df['model_type'] == 'model']
-        adapter_view = adapter_pfeiffer_view.merge(adapter_houlsby_view, on=performance_table_cols, how='left', suffixes=('_pfeiffer', '_houlsby'))
+        adapter_view = adapter_pfeiffer_view.merge(adapter_houlsby_view, on=performance_table_cols, how='outer', suffixes=('_pfeiffer', '_houlsby'))
 
         # For the model_view, join back to adapter_view
-        performance_view = model_view.merge(adapter_view, on=performance_table_cols, how='left')
+        performance_view = adapter_view.merge(model_view, on=performance_table_cols, how='outer')
         performance_view.rename(columns={
             'av_trial_macro_f1': 'f1_finetuning', 
             'std_trial_macro_f1': 'std_f1_finetuning',
@@ -591,7 +626,7 @@ class TrainerAnalytics(TrainerUtilities):
         performance_view = performance_view[performance_table_cols + ['f1_finetuning', 'std_f1_finetuning', 'f1_pfeiffer', 'std_f1_pfeiffer', 'f1_houlsby', 'std_f1_houlsby']]
         
         # The order of short_study should be as listed below
-        order = ['ROBERTA', 'DAPT', 'TAPT', 'DAPT_TAPT']
+        order = ['ROBERTA', 'TAPT', 'DAPT', 'DAPT_TAPT']
         performance_view['short_study'] = pd.Categorical(performance_view['short_study'], categories=order, ordered=True)
         performance_view.sort_values(by=performance_table_cols, inplace=True)
 
@@ -657,7 +692,7 @@ class TrainerAnalytics(TrainerUtilities):
         for domain, domain_data in comparative_outputs.items():
             for task, task_data in domain_data.items():
                 performance_data = task_data['performance']
-                for base_model in ['ROBERTA', 'DAPT', 'TAPT', 'DAPT_TAPT']:
+                for base_model in ['ROBERTA', 'TAPT', 'DAPT', 'DAPT_TAPT']:
                     if 'best_finetuning' not in performance_data:
                         continue
 
@@ -692,6 +727,9 @@ class TrainerAnalytics(TrainerUtilities):
         latex_tables = generate_latex_tables_from_csv('resources/tmp_max_df2.csv')
         print(latex_tables['ACL-ARC'].replace('DAPT_TAPT', 'DAPT\\_TAPT'))
         print(latex_tables['SCIERC'].replace('DAPT_TAPT', 'DAPT\\_TAPT'))
+        print(latex_tables['HYPERPARTISAN'].replace('DAPT_TAPT', 'DAPT\\_TAPT'))
+        print(latex_tables['IMDB'].replace('DAPT_TAPT', 'DAPT\\_TAPT'))
+        print(latex_tables['CHEMPROT'].replace('DAPT_TAPT', 'DAPT\\_TAPT'))
 
 
         best_epochs = []
@@ -712,9 +750,39 @@ class TrainerAnalytics(TrainerUtilities):
             batch_size = training_args['per_device_train_batch_size']
             epochs = training_args['num_train_epochs']
 
-            print(f"Study: {study}, \
-                  \n ----> F1 Score: {f1_score}, \
-                  \n ----> Trial: {trial}, Learning Rate: {learning_rate}, Batch Size: {batch_size}, Epochs: {epochs}")
+            if  ('citation_intent' in study or 'sciie' in study) and (study.startswith('cs_roberta') or study.startswith('roberta-base')):
+                # ('citation_intent' in study and 'intent_seq_bn' in study and 'cs_roberta' in study) or \
+                # ('sciie' in study and 'sciie_seq_bn' in study and 'cs_roberta' in study) or \
+                # ('sciie' in study and 'sciie_seq_bn' in study and 'roberta-base' in study):
+                    if 'adapter_v' in study:
+                        print(f"Study: {study}, \
+                            \n ----> F1 Score: {f1_score}, \
+                            \n ----> Trial: {trial}, Learning Rate: {learning_rate}, Batch Size: {batch_size}, Epochs: {epochs}")
+                        # Create a config for the best study
+                        # Take as template the adapter_default.yaml
+                        # Open the adapter_default.yaml
+                        import yaml
+                        study_version = study.split('_')[-1]
+                        with open(f'cs_7643_efficiencylane/training_configs/adapter_{study_version}/adapter_default.yaml', 'r') as file:
+                            adapter_config = yaml.load(file, Loader=yaml.FullLoader)
+                        # Delete search space
+                        adapter_config.pop('optuna_search_space')
+                        # Place the optimal parameters
+                        adapter_config['training_args']['learning_rate'] = learning_rate
+                        adapter_config['training_args']['per_device_train_batch_size'] = batch_size
+                        adapter_config['training_args']['per_device_eval_batch_size'] = epochs
+                        adapter_config['training_args']['num_train_epochs'] = epochs
+                        
+                        # Only 3 trials to account potential processing variations (we will pick best)
+                        adapter_config['optuna']['n_trials'] = 3
+
+                        # Save the config
+                        config_name = '_'.join(study.split('_')[:-3])
+                        config_dir = f'cs_7643_efficiencylane/training_configs/adapter_{study_version}_best'
+                        os.makedirs(config_dir, exist_ok=True)
+                        with open(f'{config_dir}/{config_name}.yaml', 'w') as file:
+                            yaml.dump(adapter_config, file)
+
 
 
             best_trials.append({'study': study, 'trial': trial, 'f1_score': f1_score, 'learning_rate': learning_rate, 'batch_size': batch_size, 'epochs': epochs})
@@ -771,11 +839,16 @@ class TrainerAnalytics(TrainerUtilities):
                 if model_data.empty:
                     continue
 
-                # Get unique studies for this model type
-                studies = model_data['short_study'].unique()
+                # Get unique studies and adapter_name combination for this model type
+                if model_type == 'adapter':
+                    model_data['study_adapter'] = model_data['short_study'] + '_' + model_data['adapter_name']
+                else:
+                    model_data['study_adapter'] = model_data['short_study']
+
+                studies_adapter = model_data['study_adapter'].drop_duplicates()
                 
                 # Calculate the number of rows needed for the subplots
-                n_studies = len(studies)
+                n_studies = len(studies_adapter)
                 n_rows = (n_studies + 1) // 2  # Ensure enough rows for all studies
                 
                 # Create a figure with subplots in a two-column layout
@@ -787,9 +860,9 @@ class TrainerAnalytics(TrainerUtilities):
                     ax.set_visible(False)
 
                 # Iterate over studies to create each subplot
-                for ax, study in zip(axs, studies):
+                for ax, study in zip(axs, studies_adapter):
                     # Filter data for the current study
-                    study_data = model_data[model_data['short_study'] == study]
+                    study_data = model_data[model_data['study_adapter'] == study]
                     trial = set(study_data['trial'])
                     assert len(trial) == 1, "Multiple trials found for the same best study"
 
@@ -822,11 +895,12 @@ class TrainerAnalytics(TrainerUtilities):
         #     'trial', 'seed', 'epoch', 'adapter_config_name', 'config_name', 
         #     'version', 'train_loss', 'eval_loss', 'eval_macro_f1', 'task', 'av_trial_macro_f1']
 
-        df = df.merge(max_df, on='study', how='left')
+        metrics = ['max_trial_macro_f1', 'av_trial_macro_f1', 'std_trial_macro_f1']
+        df_final = df_final.merge(max_df[['study'] + metrics], on='study', how='left')
 
         # Save for further study analysis
         os.makedirs('resources', exist_ok=True)
-        df.to_csv('resources/df_final_results.csv', index=False)
+        df_final.to_csv('resources/df_final_results.csv', index=False)
 
         # Now, retrieve the best trial parameters from trainin_output folder
 
@@ -834,14 +908,18 @@ class TrainerAnalytics(TrainerUtilities):
 
 
 
+        df_final['study_adapter'] = df_final.apply(lambda row: row['short_study'] + '_' + row['adapter_name'] if not pd.isna(row['adapter_name']) else row['short_study'], axis=1)
 
         # Further processing (to be refacored)
-        df['trial_order'] = df['trial']
-        df.sort_values(by=['short_study', 'model_variant', 'trial_order'], inplace=True)
+        df_final['trial_order'] = df_final['trial']
+        df_final.sort_values(by=['study_adapter', 'model_variant', 'trial_order'], inplace=True)
 
-        tasks = df['task'].unique()
+        df_final['domain'] = df_final['task'].map(domains_mapper)
+
+
+        tasks = df_final['task'].unique()
         for task in tasks:
-            versions = df['version'].unique()
+            versions = df_final['version'].unique()
             for version in versions:
                 # if version not in ['v03', 'v04', 'v05', 'v06']:
                 #     # Skip as these do not update
@@ -851,13 +929,14 @@ class TrainerAnalytics(TrainerUtilities):
                 out_dir = f'resources/{task}/{version}'
                 os.makedirs(out_dir, exist_ok=True)
 
-                filtered_df = df[(df['task'] == task) & (df['version'] == version)]
+                filtered_df = df_final[(df_final['task'] == task) & (df_final['version'] == version)]
+                domain = filtered_df['domain'].iloc[0]
                 if version != 'v01':
                     # Need to add model results
-                    filtered_df = pd.concat([filtered_df, df[(df['task'] == task) & (df['version'] == 'v01')]])
+                    filtered_df = pd.concat([filtered_df, df_final[(df_final['task'] == task) & (df_final['version'] == 'v01')]])
                 
                 # Get the full list of abbreviations by manually adding adapter abbreviations
-                full_abbreviations = list(abbreviations.values()) + ['ROBERTA_SEQ_BN', 'ROBERTA_DOUBLE_SEQ_BN', 'DAPT_SEQ_BN', 'DAPT_DOUBLE_SEQ_BN']
+                full_abbreviations = list(abbreviations.values()) + ['ROBERTA_Pfeiffer', 'ROBERTA_Houlsby', 'DAPT_Pfeiffer', 'DAPT_Houlsby']
                 full_abbreviations = list(dict.fromkeys(full_abbreviations))
 
                 # Make plots
@@ -866,8 +945,13 @@ class TrainerAnalytics(TrainerUtilities):
 
                 comparison_results_path = 'comparative_outputs/dont-stop-pretraining-model-outputs.json'
                 comparison_results = json.load(open(comparison_results_path))
-                comparison_results_task_raw = comparison_results['CS'][task]['performance']['baseline']
-                comparison_results_task = {k: round(v / 100, 4) for k, v in comparison_results_task_raw.items()}
+                comparison_results_task_raw = comparison_results[domain][task]['performance']['baseline']
+                comparison_results_task = {k: round(v['F1'] / 100, 4) for k, v in comparison_results_task_raw.items()}
+
+                # from pandas.api.types import CategoricalDtype
+                # cat_type = CategoricalDtype(categories=full_abbreviations, ordered=True)
+                # filtered_df['study_adapter'] = filtered_df['study_adapter'].astype(cat_type)
+                # set(filtered_df['study_adapter'])
 
                 self.plot_evaluation_f1_macro(filtered_df, filters_dict, full_abbreviations, comparison_results_task, out_dir)
 
@@ -938,23 +1022,42 @@ class TrainerAnalytics(TrainerUtilities):
 
         # Add benchmarks for adapters
         comparison_results_task.update({
-            'ROBERTA_SEQ_BN': df[df['short_study'] == 'TAPT']['av_trial_macro_f1'].mean(),
-            'ROBERTA_DOUBLE_SEQ_BN': df[df['short_study'] == 'TAPT']['av_trial_macro_f1'].mean(),
-            'DAPT_SEQ_BN': df[df['short_study'] == 'DAPT_TAPT']['av_trial_macro_f1'].mean(),
-            'DAPT_DOUBLE_SEQ_BN': df[df['short_study'] == 'DAPT_TAPT']['av_trial_macro_f1'].mean()})
+            'ROBERTA_Pfeiffer': df[df['study_adapter'] == 'TAPT']['av_trial_macro_f1'].mean(),
+            'ROBERTA_Houlsby': df[df['study_adapter'] == 'TAPT']['av_trial_macro_f1'].mean(),
+            'DAPT_Pfeiffer': df[df['study_adapter'] == 'DAPT_TAPT']['av_trial_macro_f1'].mean(),
+            'DAPT_Houlsby': df[df['study_adapter'] == 'DAPT_TAPT']['av_trial_macro_f1'].mean()})
 
         # Set the aesthetic style of the plots
         sns.set_style("whitegrid")
         plt.figure(figsize=(14, 8))
 
-        min_y, max_y = 0.4, 0.85
-        if filters_dict['task'] == 'SCIERC':
+        if filters_dict['task'] == 'ACL-ARC':
+            min_y, max_y = 0.4, 0.85
+        elif filters_dict['task'] == 'SCIERC':
             min_y, max_y = 0.6, 0.95
-        
+        elif filters_dict['task'] == 'HYPERPARTISAN':
+            min_y, max_y = 0.7, 1
+        elif filters_dict['task'] == 'AGNEWS':
+            min_y, max_y = 0.8, 1
+        elif filters_dict['task'] == 'HELPFULNESS':
+            min_y, max_y = 0.4, 0.85
+        elif filters_dict['task'] == 'IMDB':
+            min_y, max_y = 0.8, 1
+        elif filters_dict['task'] == 'CHEMPROT':
+            min_y, max_y = 0.6, 0.95
+        elif filters_dict['task'] == 'RCT':
+            min_y, max_y = 0.6, 0.95
+        else:
+            raise ValueError("Invalid task")
+
         plt.ylim(min_y, max_y) # Note, consider the annotations if changing these limits
 
-        ax = sns.boxplot(data=df, x='short_study', y='eval_macro_f1', hue='trial', 
-            palette='Set2', order=ordered_labels)
+        # from pandas.api.types import CategoricalDtype
+        # cat_type = CategoricalDtype(categories=ordered_labels, ordered=True)
+        # df['study_adapter'] = df['study_adapter'].astype(cat_type)
+
+        ax = sns.boxplot(data=df, x='study_adapter', y='eval_macro_f1', hue='trial', palette='Set2',
+                         order=ordered_labels)
 
         # Font settings for annotations
         fontdict = {'fontsize': 10, 'fontweight': 'bold'}
@@ -965,11 +1068,11 @@ class TrainerAnalytics(TrainerUtilities):
             
             if benchmark:
                 # Get the y position for the average eval_macro_f1 per study/trial
-                av_f1 = df[df['short_study'] == study]['av_trial_macro_f1'].max()
+                av_f1 = df[df['study_adapter'] == study]['av_trial_macro_f1'].max()
 
-                if study in ['ROBERTA_SEQ_BN', 'ROBERTA_DOUBLE_SEQ_BN', 'DAPT_SEQ_BN', 'DAPT_DOUBLE_SEQ_BN']:
+                if study in ['ROBERTA_Pfeiffer', 'ROBERTA_Houlsby', 'DAPT_Pfeiffer', 'DAPT_Houlsby']:
                     # These are experiments for hyperparameter tuning, so we take the best results per trial (trial is made up of 5 seeds)
-                    av_f1 = df[df['short_study'] == study]['av_trial_macro_f1'].max()
+                    av_f1 = df[df['study_adapter'] == study]['av_trial_macro_f1'].max()
 
                 # The x position is i (the loop index), adjust as necessary
                 x_position = i
@@ -1083,26 +1186,55 @@ class TrainerOutputProcessor(TrainerUtilities):
             'cs_roberta_base_citation_intent_seq_bn_training_adapter_v01', 
             'cs_roberta_base_citation_intent_double_seq_bn_training_adapter_v01']
 
-        # Manual functions for deletion
-        # self.delete_folder_and_optuna_study('dsp_roberta_base_tapt_citation_intent_1688_citation_intent_training_adapter_v01')
-        # self.delete_folder_and_optuna_study('cs_roberta_base_sciie_double_seq_bn_training_adapter_v01')
-        # self.delete_folder_and_optuna_study('cs_roberta_base_citation_intent_double_seq_bn_training_adapter_v01')
-        # self.delete_folder_and_optuna_study('roberta-base_sciie_seq_bn_training_adapter_v01')
-        # self.delete_folder_and_optuna_study('roberta-base_sciie_seq_bn_training_adapter_v01')
-        # self.delete_folder_and_optuna_study('roberta-base_sciie_double_seq_bn_training_adapter_v01')
-        # self.delete_folder_and_optuna_study('roberta-base_citation_intent_double_seq_bn_training_adapter_v01')
 
-        # Rerun
-        # self.all_studies_dict['dsp_roberta_base_tapt_citation_intent_1688_citation_intent_training_adapter_v01'] + " -1"
-        # self.all_studies_dict['roberta-base_sciie_double_seq_bn_training_adapter_v01']  + " -1"
+        [print(x) for x in self.pending_studies_commands]
+        [print(command + " 0") for name, command in self.all_studies_dict.items() if 'chemprot' in name and 'dsp_roberta' not in name]
+
+        # hyperpartisan = [x for x in self.all_studies_dict if 'hyperpartisan' in x]
+        # [self.delete_folder_and_optuna_study(x) for x in hyperpartisan]
+
+        # print("Pending Studies ---------------")
+        # [print(x) for x in self.pending_studies]
+
+        # print("Remediate Studies ---------------")
+        # for key, items in self.remediate_studies_dict.items():
+        #     print("======> ", key)
+        #     [print(x) for x in items]
+
+        # print("Incomplete Studies ---------------")
+        # for key, items in self.incomplete_studies_dict.items():
+        #     print("======> ", key)
+        #     [print(x) for x in items]
+
+        # Manual functions for deletion
+        # self.delete_folder_and_optuna_study('cs_roberta_base_sciie_double_seq_bn_training_adapter_v01-backup')
+        # self.delete_folder_and_optuna_study('roberta-base_sciie_seq_bn_training_adapter_v01_backup')
+        # self.delete_folder_and_optuna_study('roberta-base_ag_seq_bn_training_default_test')
+        # self.delete_folder_and_optuna_study('roberta-base_sciie_seq_bn_training_adapter_v01')
+        # self.delete_folder_and_optuna_study('roberta-base_chemprot_seq_bn_training_default_test')
+
+        # # # Rerun
+        [print(self.all_studies_dict[x]  + " 0") for x in self.incomplete_studies_dict['not_updated_in_last_hour'] if x in self.all_studies_dict]
+        # print(self.all_studies_dict['roberta-base_sciie_seq_bn_training_adapter_v01']  + " 0")
+        # print(self.all_studies_dict['biomed_roberta_base_chemprot_double_seq_bn_training_adapter_v01']  + " 0")
+        # print(self.all_studies_dict['roberta-base_ag_seq_bn_training_adapter_v01']  + " 0")
+        # print(self.all_studies_dict['dsp_roberta_base_tapt_sciie_3219_sciie_seq_bn_training_adapter_v01']  + " 0")
+        # print(self.all_studies_dict['reviews_roberta_base_imdb_training_model_v01']  + " 0")
+        # print(self.all_studies_dict['roberta-base_amazon_seq_bn_training_adapter_v01']  + " 0")
+        # print(self.all_studies_dict['reviews_roberta_base_amazon_training_model_v01']  + " 0")
+        # print(self.all_studies_dict['roberta-base_ag_seq_bn_training_adapter_v01']  + " 0")
+        # print(self.all_studies_dict['roberta-base_ag_double_seq_bn_training_adapter_v01']  + " 0")
+        # print(self.all_studies_dict['roberta-base_amazon_double_seq_bn_training_adapter_v01']  + " 0")
+        # print(self.all_studies_dict['news_roberta_base_ag_seq_bn_training_adapter_v01']  + " 0")
+        # print(self.all_studies_dict['roberta-base_imdb_double_seq_bn_training_adapter_v01']  + " 0")
+        # print(self.all_studies_dict['news_roberta_base_ag_double_seq_bn_training_adapter_v01']  + " 0")
+        # print(self.all_studies_dict['reviews_roberta_base_imdb_seq_bn_training_adapter_v01']  + " 0")
+
 
         # Overwrite
-        # self.all_studies_dict['dsp_roberta_base_tapt_citation_intent_1688_citation_intent_seq_bn_training_adapter_v01'] + " 1"
-        # self.all_studies_dict['dsp_roberta_base_dapt_cs_tapt_citation_intent_1688_citation_intent_seq_bn_training_adapter_v01'] + " 1"
-        
+        # print(self.all_studies_dict[''] + " 1"
 
-        # dsp_roberta_base_dapt_cs_tapt_citation_intent_1688_citation_intent_training_base_v03
-        # dsp_roberta_base_tapt_citation_intent_1688_citation_intent_training_base_v03
+
 
     def delete_study(self, study_name):
         """
@@ -1202,6 +1334,18 @@ class TrainerOutputProcessor(TrainerUtilities):
         trainer = self.get_trainer_output_incomplete_studies()
         optuna = self.get_optuna_incomplete_studies()
 
+        # Check which optuna studies have not updated a trial in the last hour
+        optuna_studies_dict = {study: self.load_optuna_study(study) for study in optuna}
+        optuna_studies_last_updated = {study_name: max([trial.datetime_start for trial in study.trials]) for study_name, study in optuna_studies_dict.items()}
+        optuna_studies_last_updated = {k: v for k, v in sorted(optuna_studies_last_updated.items(), key=lambda item: item[1])}
+
+        # List the ones not updated in the last hour
+        from datetime import datetime
+        not_recently_updated = []
+        for study, last_updated in optuna_studies_last_updated.items():
+            if (datetime.now() - last_updated).seconds > 60*60:
+                not_recently_updated.append(study)
+
         both = set(trainer).intersection(set(optuna))
         trainer_only = set(trainer) - set(optuna)
         optuna_only = set(optuna) - set(trainer)
@@ -1209,7 +1353,8 @@ class TrainerOutputProcessor(TrainerUtilities):
         return {
             'both': both,
             'trainer_outputs': trainer_only,
-            'optuna': optuna_only
+            'optuna': optuna_only,
+            'not_updated_in_last_hour': not_recently_updated
         }
 
     def get_trainer_output_incomplete_studies(self):
@@ -1222,6 +1367,8 @@ class TrainerOutputProcessor(TrainerUtilities):
         # Get the incomplete studies
         incomplete_studies = []
         for study, status in study_completion.items():
+            if study not in self.all_studies_dict.keys():
+                continue
             if status == 'incomplete':
                 incomplete_studies.append(study)
         return incomplete_studies
@@ -1265,4 +1412,3 @@ if __name__ == "__main__":
 
     processor = TrainerOutputProcessor(trainer_output_path)
     analytics = TrainerAnalytics(trainer_output_path)
-

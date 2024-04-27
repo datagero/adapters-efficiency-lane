@@ -18,6 +18,8 @@ MODEL_VARIANT=$1
 DATASET_NAME=$2
 CONFIG_NAME=$3
 STUDY_SUFFIX=$4
+PARALLELISM=${5:0}
+OVERWRITE=${6:0}
 
 for i in $(seq 1 $NUM_RUNS)
 do
@@ -27,6 +29,8 @@ do
         --dataset_name "$DATASET_NAME" \
         --config_name "$CONFIG_NAME" \
         --study_suffix "$STUDY_SUFFIX" \
+        --parallelism "$PARALLELISM" \
+        --overwrite "$OVERWRITE" \
         --job_sequence $i &
     sleep 2 # Sleep for 2 seconds before starting the next job
 done
