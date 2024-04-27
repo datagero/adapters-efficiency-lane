@@ -9,7 +9,7 @@ data/
 mlruns/
 results/
 mlm_model/
-adapters/
+# adapters/
 .hydra/
 
 __pycache__/

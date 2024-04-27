@@ -270,6 +270,8 @@ class TrainerUtilities:
             return 'adapter'
         elif base_match:
             return 'model'
+        elif 'v01_best' in study_name:
+            return 'adapter'
         else:
             return 'unknown'
 
@@ -750,38 +752,38 @@ class TrainerAnalytics(TrainerUtilities):
             batch_size = training_args['per_device_train_batch_size']
             epochs = training_args['num_train_epochs']
 
-            if  ('citation_intent' in study or 'sciie' in study) and (study.startswith('cs_roberta') or study.startswith('roberta-base')):
-                # ('citation_intent' in study and 'intent_seq_bn' in study and 'cs_roberta' in study) or \
-                # ('sciie' in study and 'sciie_seq_bn' in study and 'cs_roberta' in study) or \
-                # ('sciie' in study and 'sciie_seq_bn' in study and 'roberta-base' in study):
-                    if 'adapter_v' in study:
-                        print(f"Study: {study}, \
-                            \n ----> F1 Score: {f1_score}, \
-                            \n ----> Trial: {trial}, Learning Rate: {learning_rate}, Batch Size: {batch_size}, Epochs: {epochs}")
-                        # Create a config for the best study
-                        # Take as template the adapter_default.yaml
-                        # Open the adapter_default.yaml
-                        import yaml
-                        study_version = study.split('_')[-1]
-                        with open(f'cs_7643_efficiencylane/training_configs/adapter_{study_version}/adapter_default.yaml', 'r') as file:
-                            adapter_config = yaml.load(file, Loader=yaml.FullLoader)
-                        # Delete search space
-                        adapter_config.pop('optuna_search_space')
-                        # Place the optimal parameters
-                        adapter_config['training_args']['learning_rate'] = learning_rate
-                        adapter_config['training_args']['per_device_train_batch_size'] = batch_size
-                        adapter_config['training_args']['per_device_eval_batch_size'] = epochs
-                        adapter_config['training_args']['num_train_epochs'] = epochs
+            # if  ('citation_intent' in study or 'sciie' in study) and (study.startswith('cs_roberta') or study.startswith('roberta-base')):
+            #     # ('citation_intent' in study and 'intent_seq_bn' in study and 'cs_roberta' in study) or \
+            #     # ('sciie' in study and 'sciie_seq_bn' in study and 'cs_roberta' in study) or \
+            #     # ('sciie' in study and 'sciie_seq_bn' in study and 'roberta-base' in study):
+            #         if 'adapter_v' in study:
+            #             print(f"Study: {study}, \
+            #                 \n ----> F1 Score: {f1_score}, \
+            #                 \n ----> Trial: {trial}, Learning Rate: {learning_rate}, Batch Size: {batch_size}, Epochs: {epochs}")
+            #             # Create a config for the best study
+            #             # Take as template the adapter_default.yaml
+            #             # Open the adapter_default.yaml
+            #             import yaml
+            #             study_version = study.split('_')[-1]
+            #             with open(f'cs_7643_efficiencylane/training_configs/adapter_{study_version}/adapter_default.yaml', 'r') as file:
+            #                 adapter_config = yaml.load(file, Loader=yaml.FullLoader)
+            #             # Delete search space
+            #             adapter_config.pop('optuna_search_space')
+            #             # Place the optimal parameters
+            #             adapter_config['training_args']['learning_rate'] = learning_rate
+            #             adapter_config['training_args']['per_device_train_batch_size'] = batch_size
+            #             adapter_config['training_args']['per_device_eval_batch_size'] = epochs
+            #             adapter_config['training_args']['num_train_epochs'] = epochs
                         
-                        # Only 3 trials to account potential processing variations (we will pick best)
-                        adapter_config['optuna']['n_trials'] = 3
+            #             # Only 3 trials to account potential processing variations (we will pick best)
+            #             adapter_config['optuna']['n_trials'] = 3
 
-                        # Save the config
-                        config_name = '_'.join(study.split('_')[:-3])
-                        config_dir = f'cs_7643_efficiencylane/training_configs/adapter_{study_version}_best'
-                        os.makedirs(config_dir, exist_ok=True)
-                        with open(f'{config_dir}/{config_name}.yaml', 'w') as file:
-                            yaml.dump(adapter_config, file)
+            #             # Save the config
+            #             config_name = '_'.join(study.split('_')[:-3])
+            #             config_dir = f'cs_7643_efficiencylane/training_configs/adapter_{study_version}_best'
+            #             os.makedirs(config_dir, exist_ok=True)
+            #             with open(f'{config_dir}/{config_name}.yaml', 'w') as file:
+            #                 yaml.dump(adapter_config, file)
 
 
 
