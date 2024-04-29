@@ -190,18 +190,19 @@ class TrainerUtilities:
         return model_variant, dataset_name, adapter_config_name, config_name, version
 
 
-    def get_in_scope_studies(self):
+    def get_in_scope_studies(self): 
         study_dict = {}
         for version in ["v01"]:
             # Only scope low-resources
             study_dict.update(self.container_of_expected_runs(dataset="citation_intent", version=version))
             study_dict.update(self.container_of_expected_runs(dataset="sciie", version=version))
             study_dict.update(self.container_of_expected_runs(dataset="hyperpartisan_news", version=version))
-            # study_dict.update(self.container_of_expected_runs(dataset="ag", version=version))
-            # study_dict.update(self.container_of_expected_runs(dataset="amazon", version=version))
-            # study_dict.update(self.container_of_expected_runs(dataset="imdb", version=version))
             study_dict.update(self.container_of_expected_runs(dataset="chemprot", version=version))
-            # study_dict.update(self.container_of_expected_runs(dataset="rct-20k", version=version))
+
+            study_dict.update(self.container_of_expected_runs(dataset="ag", version=version))
+            study_dict.update(self.container_of_expected_runs(dataset="amazon", version=version))
+            study_dict.update(self.container_of_expected_runs(dataset="imdb", version=version))
+            study_dict.update(self.container_of_expected_runs(dataset="rct-20k", version=version))
 
         # Models might stop being traind before adapters
         in_scope = {}
@@ -938,7 +939,7 @@ class TrainerAnalytics(TrainerUtilities):
                     filtered_df = pd.concat([filtered_df, df_final[(df_final['task'] == task) & (df_final['version'] == 'v01')]])
                 
                 # Get the full list of abbreviations by manually adding adapter abbreviations
-                full_abbreviations = list(abbreviations.values()) + ['ROBERTA_Pfeiffer', 'ROBERTA_Houlsby', 'DAPT_Pfeiffer', 'DAPT_Houlsby']
+                full_abbreviations = list(abbreviations.values()) + ['ROBERTA_Pfeiffer', 'ROBERTA_Houlsby', 'DAPT_Pfeiffer', 'DAPT_Houlsby', 'DAPT_TAPT_Pfeiffer', 'DAPT_TAPT_Houlsby']
                 full_abbreviations = list(dict.fromkeys(full_abbreviations))
 
                 # Make plots
@@ -1072,7 +1073,7 @@ class TrainerAnalytics(TrainerUtilities):
                 # Get the y position for the average eval_macro_f1 per study/trial
                 av_f1 = df[df['study_adapter'] == study]['av_trial_macro_f1'].max()
 
-                if study in ['ROBERTA_Pfeiffer', 'ROBERTA_Houlsby', 'DAPT_Pfeiffer', 'DAPT_Houlsby']:
+                if study in ['ROBERTA_Pfeiffer', 'ROBERTA_Houlsby', 'DAPT_Pfeiffer', 'DAPT_Houlsby', 'DAPT_TAPT_Pfeiffer', 'DAPT_TAPT_Houlsby']:
                     # These are experiments for hyperparameter tuning, so we take the best results per trial (trial is made up of 5 seeds)
                     av_f1 = df[df['study_adapter'] == study]['av_trial_macro_f1'].max()
 
@@ -1412,5 +1413,5 @@ class TrainerOutputProcessor(TrainerUtilities):
 if __name__ == "__main__":
     trainer_output_path = "training_output"
 
-    processor = TrainerOutputProcessor(trainer_output_path)
+    # processor = TrainerOutputProcessor(trainer_output_path)
     analytics = TrainerAnalytics(trainer_output_path)
