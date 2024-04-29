@@ -1,0 +1,538 @@
+{
+    "BIOMED": {
+        "CHEMPROT": {
+            "label_type": "relation classification",
+            "dataset": {
+                "train_labeled": 4169,
+                "dev": 2427,
+                "test": 3469,
+                "classes": 13
+            },
+            "performance": {
+                "baseline": {
+                    "ROBERTA": {
+                        "F1": 0.819,
+                        "std_dev": 0.001
+                    },
+                    "DAPT": {
+                        "F1": 0.842,
+                        "std_dev": 0.002
+                    },
+                    "TAPT": {
+                        "F1": 0.826,
+                        "std_dev": 0.004
+                    },
+                    "DAPT_TAPT": {
+                        "F1": 0.844,
+                        "std_dev": 0.004
+                    }
+                },
+                "best_finetuning": {
+                    "ROBERTA": {
+                        "F1": 0.8069184202940329,
+                        "std_dev": 0.005459607082643264
+                    },
+                    "DAPT": {
+                        "F1": 0.8171807437301816,
+                        "std_dev": 0.004063447319421384
+                    },
+                    "NaN": {
+                        "F1": 0.8170654367252812,
+                        "std_dev": 0.009185290438874168
+                    },
+                    "TAPT": {
+                        "F1": 0.7988469299509945,
+                        "std_dev": 0.0066000041476040276
+                    },
+                    "DAPT_TAPT": {
+                        "F1": 0.8170654367252812,
+                        "std_dev": 0.009185290438874168
+                    }
+                },
+                "best_pfeiffer": {
+                    "ROBERTA": {
+                        "F1": 0.8038051311617181,
+                        "std_dev": 0.00522710957931078
+                    },
+                    "DAPT": {
+                        "F1": 0.818506774286538,
+                        "std_dev": 0.005134885172036138
+                    },
+                    "NaN": {
+                        "F1": 0.8167195157105794,
+                        "std_dev": 0.0038642902458201752
+                    },
+                    "TAPT": {
+                        "F1": 0.8079561833381378,
+                        "std_dev": 0.004463029085847011
+                    },
+                    "DAPT_TAPT": {
+                        "F1": 0.8167195157105794,
+                        "std_dev": 0.0038642902458201752
+                    }
+                },
+                "best_houlsby": {
+                    "ROBERTA": {
+                        "F1": 0.809455174401845,
+                        "std_dev": 0.004040889526917331
+                    },
+                    "DAPT": {
+                        "F1": 0.8215624099164025,
+                        "std_dev": 0.006769684961555137
+                    },
+                    "NaN": {
+                        "F1": 0.8229460939752091,
+                        "std_dev": 0.003970355234753871
+                    },
+                    "TAPT": {
+                        "F1": 0.8067454597866821,
+                        "std_dev": 0.006499137944861573
+                    },
+                    "DAPT_TAPT": {
+                        "F1": 0.8229460939752091,
+                        "std_dev": 0.003970355234753871
+                    }
+                }
+            }
+        },
+        "RCT": {
+            "label_type": "abstract sent. roles",
+            "dataset": {
+                "train_labeled": 18040,
+                "dev": 30212,
+                "test": 30135,
+                "classes": 5
+            },
+            "performance": {
+                "baseline": {
+                    "ROBERTA": {
+                        "F1": 0.872,
+                        "std_dev": 0.001
+                    },
+                    "DAPT": {
+                        "F1": 0.876,
+                        "std_dev": 0.001
+                    },
+                    "TAPT": {
+                        "F1": 0.877,
+                        "std_dev": 0.001
+                    },
+                    "DAPT_TAPT": {
+                        "F1": 0.878,
+                        "std_dev": 0.001
+                    }
+                }
+            }
+        }
+    },
+    "CS": {
+        "ACL-ARC": {
+            "label_type": "citation intent",
+            "dataset": {
+                "train_labeled": 1688,
+                "dev": 114,
+                "test": 139,
+                "classes": 6
+            },
+            "performance": {
+                "baseline": {
+                    "ROBERTA": {
+                        "F1": 0.63,
+                        "std_dev": 0.058
+                    },
+                    "DAPT": {
+                        "F1": 0.754,
+                        "std_dev": 0.025
+                    },
+                    "TAPT": {
+                        "F1": 0.674,
+                        "std_dev": 0.018
+                    },
+                    "DAPT_TAPT": {
+                        "F1": 0.756,
+                        "std_dev": 0.038
+                    }
+                },
+                "best_finetuning": {
+                    "ROBERTA": {
+                        "F1": 0.663377522799207,
+                        "std_dev": 0.04667398848630728
+                    },
+                    "DAPT": {
+                        "F1": 0.7465411632955493,
+                        "std_dev": 0.033312330530925485
+                    },
+                    "TAPT": {
+                        "F1": 0.6949014170668122,
+                        "std_dev": 0.022391858277810997
+                    },
+                    "DAPT_TAPT": {
+                        "F1": 0.7489438502531613,
+                        "std_dev": 0.024795297499408578
+                    },
+                    "NaN": {
+                        "F1": 0.6090810190683814,
+                        "std_dev": 0.14186440433992648
+                    },
+                    "ROBERTA_best": {
+                        "F1": NaN,
+                        "std_dev": NaN
+                    },
+                    "DAPT_best": {
+                        "F1": NaN,
+                        "std_dev": NaN
+                    }
+                },
+                "best_pfeiffer": {
+                    "ROBERTA": {
+                        "F1": 0.6712343784193966,
+                        "std_dev": 0.018508321265433753
+                    },
+                    "DAPT": {
+                        "F1": 0.733230395724972,
+                        "std_dev": 0.01792188330891455
+                    },
+                    "TAPT": {
+                        "F1": 0.6722374874020548,
+                        "std_dev": 0.03915845295674483
+                    },
+                    "DAPT_TAPT": {
+                        "F1": 0.7319967440314457,
+                        "std_dev": 0.028407575231015496
+                    },
+                    "NaN": {
+                        "F1": NaN,
+                        "std_dev": NaN
+                    },
+                    "ROBERTA_best": {
+                        "F1": 0.675319088129074,
+                        "std_dev": 0.029870482368780808
+                    },
+                    "DAPT_best": {
+                        "F1": 0.7419644510319745,
+                        "std_dev": 0.017748844078867024
+                    }
+                },
+                "best_houlsby": {
+                    "ROBERTA": {
+                        "F1": 0.6552669011904053,
+                        "std_dev": 0.013019191494868737
+                    },
+                    "DAPT": {
+                        "F1": 0.740322307139114,
+                        "std_dev": 0.033584648891377085
+                    },
+                    "TAPT": {
+                        "F1": 0.6512142002812703,
+                        "std_dev": 0.012157156119804047
+                    },
+                    "DAPT_TAPT": {
+                        "F1": 0.7223560069181801,
+                        "std_dev": 0.015487749800424264
+                    },
+                    "NaN": {
+                        "F1": NaN,
+                        "std_dev": NaN
+                    },
+                    "ROBERTA_best": {
+                        "F1": 0.6440439338922148,
+                        "std_dev": 0.029980356801438627
+                    },
+                    "DAPT_best": {
+                        "F1": 0.7438249022500901,
+                        "std_dev": 0.021351555462724946
+                    }
+                }
+            }
+        },
+        "SCIERC": {
+            "label_type": "relation classification",
+            "dataset": {
+                "train_labeled": 3219,
+                "dev": 455,
+                "test": 974,
+                "classes": 7
+            },
+            "performance": {
+                "baseline": {
+                    "ROBERTA": {
+                        "F1": 0.773,
+                        "std_dev": 0.019
+                    },
+                    "DAPT": {
+                        "F1": 0.808,
+                        "std_dev": 0.015
+                    },
+                    "TAPT": {
+                        "F1": 0.793,
+                        "std_dev": 0.015
+                    },
+                    "DAPT_TAPT": {
+                        "F1": 0.813,
+                        "std_dev": 0.018
+                    }
+                },
+                "best_finetuning": {
+                    "ROBERTA": {
+                        "F1": 0.8002378659621054,
+                        "std_dev": 0.012004887539067586
+                    },
+                    "DAPT": {
+                        "F1": 0.8307519833347484,
+                        "std_dev": 0.01158937439824313
+                    },
+                    "TAPT": {
+                        "F1": 0.8094903521132835,
+                        "std_dev": 0.007359600280182166
+                    },
+                    "DAPT_TAPT": {
+                        "F1": 0.815547339244508,
+                        "std_dev": 0.0074409933186721615
+                    },
+                    "ROBERTA_best": {
+                        "F1": NaN,
+                        "std_dev": NaN
+                    },
+                    "DAPT_best": {
+                        "F1": NaN,
+                        "std_dev": NaN
+                    }
+                },
+                "best_pfeiffer": {
+                    "ROBERTA": {
+                        "F1": 0.8160258239214265,
+                        "std_dev": 0.004154909132354944
+                    },
+                    "DAPT": {
+                        "F1": 0.8247869580363505,
+                        "std_dev": 0.005368050455455644
+                    },
+                    "TAPT": {
+                        "F1": 0.8080199454621834,
+                        "std_dev": 0.01354852184578263
+                    },
+                    "DAPT_TAPT": {
+                        "F1": 0.8146639655026187,
+                        "std_dev": 0.007006897525125165
+                    },
+                    "ROBERTA_best": {
+                        "F1": 0.8129108167395087,
+                        "std_dev": 0.010062775212991825
+                    },
+                    "DAPT_best": {
+                        "F1": 0.8161836863439204,
+                        "std_dev": 0.006233546299855214
+                    }
+                },
+                "best_houlsby": {
+                    "ROBERTA": {
+                        "F1": 0.8132436514441175,
+                        "std_dev": 0.007102718280551396
+                    },
+                    "DAPT": {
+                        "F1": 0.8254595306706412,
+                        "std_dev": 0.008136399280804573
+                    },
+                    "TAPT": {
+                        "F1": 0.8092269419517294,
+                        "std_dev": 0.007601373263469559
+                    },
+                    "DAPT_TAPT": {
+                        "F1": 0.8880903490759755,
+                        "std_dev": 0.0057623060371261746
+                    },
+                    "ROBERTA_best": {
+                        "F1": 0.8186820694468399,
+                        "std_dev": 0.005146951047562843
+                    },
+                    "DAPT_best": {
+                        "F1": 0.8238514737703696,
+                        "std_dev": 0.004698982597727025
+                    }
+                }
+            }
+        }
+    },
+    "NEWS": {
+        "HYPERPARTISAN": {
+            "label_type": "partisanship",
+            "dataset": {
+                "train_labeled": 515,
+                "train_unlabeled": 5000,
+                "dev": 65,
+                "test": 65,
+                "classes": 2
+            },
+            "performance": {
+                "baseline": {
+                    "ROBERTA": {
+                        "F1": 0.866,
+                        "std_dev": 0.009
+                    },
+                    "DAPT": {
+                        "F1": 0.882,
+                        "std_dev": 0.059
+                    },
+                    "TAPT": {
+                        "F1": 0.904,
+                        "std_dev": 0.052
+                    },
+                    "DAPT_TAPT": {
+                        "F1": 0.9,
+                        "std_dev": 0.06
+                    }
+                },
+                "best_finetuning": {
+                    "DAPT": {
+                        "F1": 0.9516008935219658,
+                        "std_dev": 0.0
+                    },
+                    "ROBERTA": {
+                        "F1": 0.9516008935219658,
+                        "std_dev": 0.0
+                    }
+                },
+                "best_pfeiffer": {
+                    "DAPT": {
+                        "F1": 0.9482807148175727,
+                        "std_dev": 0.007424145280470234
+                    },
+                    "ROBERTA": {
+                        "F1": 0.9151630135662604,
+                        "std_dev": 0.007988388453364427
+                    }
+                },
+                "best_houlsby": {
+                    "DAPT": {
+                        "F1": 0.9516008935219658,
+                        "std_dev": 0.0
+                    },
+                    "ROBERTA": {
+                        "F1": 0.9516008935219658,
+                        "std_dev": 0.0
+                    }
+                }
+            }
+        },
+        "AGNEWS": {
+            "label_type": "topic",
+            "dataset": {
+                "train_labeled": 115000,
+                "dev": 5000,
+                "test": 7600,
+                "classes": 4
+            },
+            "performance": {
+                "baseline": {
+                    "ROBERTA": {
+                        "F1": 0.939,
+                        "std_dev": 0.002
+                    },
+                    "DAPT": {
+                        "F1": 0.939,
+                        "std_dev": 0.002
+                    },
+                    "TAPT": {
+                        "F1": 0.945,
+                        "std_dev": 0.001
+                    },
+                    "DAPT_TAPT": {
+                        "F1": 0.946,
+                        "std_dev": 0.001
+                    }
+                }
+            }
+        }
+    },
+    "REVIEWS": {
+        "HELPFULNESS": {
+            "label_type": "review helpfulness",
+            "dataset": {
+                "train_labeled": 115251,
+                "dev": 5000,
+                "test": 25000,
+                "classes": 2
+            },
+            "performance": {
+                "baseline": {
+                    "ROBERTA": {
+                        "F1": 0.651,
+                        "std_dev": 0.034
+                    },
+                    "DAPT": {
+                        "F1": 0.665,
+                        "std_dev": 0.014
+                    },
+                    "TAPT": {
+                        "F1": 0.685,
+                        "std_dev": 0.019
+                    },
+                    "DAPT_TAPT": {
+                        "F1": 0.687,
+                        "std_dev": 0.018
+                    }
+                }
+            }
+        },
+        "IMDB": {
+            "label_type": "review sentiment",
+            "dataset": {
+                "train_labeled": 20000,
+                "train_unlabeled": 50000,
+                "dev": 5000,
+                "test": 25000,
+                "classes": 2
+            },
+            "performance": {
+                "baseline": {
+                    "ROBERTA": {
+                        "F1": 0.95,
+                        "std_dev": 0.002
+                    },
+                    "DAPT": {
+                        "F1": 0.954,
+                        "std_dev": 0.001
+                    },
+                    "TAPT": {
+                        "F1": 0.955,
+                        "std_dev": 0.001
+                    },
+                    "DAPT_TAPT": {
+                        "F1": 0.956,
+                        "std_dev": 0.1
+                    }
+                },
+                "best_finetuning": {
+                    "ROBERTA": {
+                        "F1": NaN,
+                        "std_dev": NaN
+                    },
+                    "DAPT": {
+                        "F1": 0.8821973996713204,
+                        "std_dev": 0.0012253473464442154
+                    }
+                },
+                "best_pfeiffer": {
+                    "ROBERTA": {
+                        "F1": NaN,
+                        "std_dev": NaN
+                    },
+                    "DAPT": {
+                        "F1": NaN,
+                        "std_dev": NaN
+                    }
+                },
+                "best_houlsby": {
+                    "ROBERTA": {
+                        "F1": 0.8869902083663168,
+                        "std_dev": 0.00041657795369684676
+                    },
+                    "DAPT": {
+                        "F1": 0.883585253193041,
+                        "std_dev": 0.001372435561281076
+                    }
+                }
+            }
+        }
+    }
+}
