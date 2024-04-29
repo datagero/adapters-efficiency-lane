@@ -886,6 +886,9 @@ class TrainerAnalytics(TrainerUtilities):
                 for ax, study in zip(axs, studies_adapter):
                     # Filter data for the current study
                     study_data = model_data[model_data['study_adapter'] == study]
+                    # Ignore best version run as not needed
+                    study_data = study_data[~study_data['version'].str.contains('best')]
+
                     trial = set(study_data['trial'])
                     assert len(trial) == 1, "Multiple trials found for the same best study"
 
@@ -944,6 +947,8 @@ class TrainerAnalytics(TrainerUtilities):
         for task in tasks:
             versions = df_final['version'].unique()
             for version in versions:
+                if version == 'best':
+                    continue
                 # if version not in ['v03', 'v04', 'v05', 'v06']:
                 #     # Skip as these do not update
                 #     continue
@@ -977,6 +982,23 @@ class TrainerAnalytics(TrainerUtilities):
                 # set(filtered_df['study_adapter'])
 
                 self.plot_evaluation_f1_macro(filtered_df, filters_dict, full_abbreviations, comparison_results_task, out_dir)
+
+                # Only adapter plots
+                report_output_dir = f'project_report/resources/{task}/{version}'
+                os.makedirs(report_output_dir, exist_ok=True)
+
+                scoped_df = filtered_df[filtered_df['model_type'] == 'adapter']
+                scoped_df = scoped_df[scoped_df['short_study'] == 'ROBERTA']
+                self.plot_losses_by_type(scoped_df, filters_dict, report_output_dir)
+                
+                adapter_abbreviations = ['ROBERTA_Houlsby', 'DAPT_Houlsby']
+                self.plot_evaluation_f1_macro(filtered_df, filters_dict, adapter_abbreviations, comparison_results_task, report_output_dir)
+
+                report_output_dir_dapttapt = f'{report_output_dir}/DAPT_TAPT'
+                os.makedirs(report_output_dir_dapttapt, exist_ok=True)
+                adapter_abbreviations = ['DAPT_TAPT_Pfeiffer', 'DAPT_TAPT_Houlsby']
+                adapter_abbreviations = list(dict.fromkeys(adapter_abbreviations))
+                self.plot_evaluation_f1_macro(filtered_df, filters_dict, adapter_abbreviations, comparison_results_task, report_output_dir_dapttapt)
 
 
     def extract_final_metrics(self, data, adapter=False):
@@ -1038,7 +1060,8 @@ class TrainerAnalytics(TrainerUtilities):
 
             plt.tight_layout()  # Adjust layout to prevent overlap
             plt.savefig(f'{out_dir}/{loss_type}_across_seeds_comparison.png')
-            plt.show()
+            # plt.show()
+            plt.close()
             print("Finished Loss Type Plot")
 
     def plot_evaluation_f1_macro(self, df, filters_dict, ordered_labels, comparison_results_task, out_dir):
@@ -1048,7 +1071,9 @@ class TrainerAnalytics(TrainerUtilities):
             'ROBERTA_Pfeiffer': df[df['study_adapter'] == 'TAPT']['av_trial_macro_f1'].mean(),
             'ROBERTA_Houlsby': df[df['study_adapter'] == 'TAPT']['av_trial_macro_f1'].mean(),
             'DAPT_Pfeiffer': df[df['study_adapter'] == 'DAPT_TAPT']['av_trial_macro_f1'].mean(),
-            'DAPT_Houlsby': df[df['study_adapter'] == 'DAPT_TAPT']['av_trial_macro_f1'].mean()})
+            'DAPT_Houlsby': df[df['study_adapter'] == 'DAPT_TAPT']['av_trial_macro_f1'].mean(),
+            'DAPT_TAPT_Pfeiffer': df[df['study_adapter'] == 'DAPT_TAPT']['av_trial_macro_f1'].mean(),
+            'DAPT_TAPT_Houlsby': df[df['study_adapter'] == 'DAPT_TAPT']['av_trial_macro_f1'].mean()})
 
         # Set the aesthetic style of the plots
         sns.set_style("whitegrid")
@@ -1079,8 +1104,12 @@ class TrainerAnalytics(TrainerUtilities):
         # cat_type = CategoricalDtype(categories=ordered_labels, ordered=True)
         # df['study_adapter'] = df['study_adapter'].astype(cat_type)
 
-        ax = sns.boxplot(data=df, x='study_adapter', y='eval_macro_f1', hue='trial', palette='Set2',
+        try:
+            ax = sns.boxplot(data=df, x='study_adapter', y='eval_macro_f1', hue='trial', palette='Set2',
                          order=ordered_labels)
+        except Exception as e:
+            print("Error in boxplot", e)
+            ax = sns.boxplot(data=df, x='study_adapter', y='eval_macro_f1', hue='trial', palette='Set2')
 
         # Font settings for annotations
         fontdict = {'fontsize': 10, 'fontweight': 'bold'}
@@ -1123,7 +1152,7 @@ class TrainerAnalytics(TrainerUtilities):
                             arrowprops=dict(arrowstyle=av_f1_arrow_style, color='green'))
 
 
-        benchmark_patch = mpatches.Patch(color='red', label='Benchmark', linestyle='--', linewidth=2)
+        benchmark_patch = mpatches.Patch(color='red', label='TAPT Benchmark', linestyle='--', linewidth=2)
         av_f1_patch = mpatches.Patch(color='green', label='Average eval_macro_f1', linestyle='-', linewidth=2)
 
         # Adding legends to the plot
@@ -1140,7 +1169,7 @@ class TrainerAnalytics(TrainerUtilities):
         plt.legend(title='Trial', loc='upper left', bbox_to_anchor=(1, 1))
         plt.tight_layout()
         plt.savefig(f'{out_dir}/evaluation_macro_f1_across_seeds.png', dpi=300)
-        plt.show()
+        # plt.show()
         plt.close()
         print("Finished F1 Metric Plot")
 
