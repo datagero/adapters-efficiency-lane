@@ -1,1 +1,0 @@
-# This is an empty file to show the structure of the directory.
