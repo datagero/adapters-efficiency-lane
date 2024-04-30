@@ -1,4 +1,4 @@
-\documentclass[draft,10pt,twocolumn,letterpaper]{article}
+\documentclass[10pt,twocolumn,letterpaper]{article}
 
 \usepackage{cvpr}
 \usepackage{times}
@@ -20,7 +20,10 @@
 % If you comment hyperref and then uncomment it, you should delete
 % egpaper.aux before re-running latex.  (Or just hit 'q' on the first latex
 % run, let it finish, and you should be clear).
-\usepackage[pagebackref=true,breaklinks=true,letterpaper=true,colorlinks,bookmarks=false]{hyperref}
+%\usepackage[pagebackref=true,breaklinks=true,letterpaper=true,colorlinks,bookmarks=false]{hyperref}
+\usepackage{hyperref}
+\usepackage{cleveref} % For clever referencing
+
 
 \cvprfinalcopy % *** Uncomment this line for the final submission
 
@@ -54,7 +57,8 @@ William Gleason\\
 
 %%%%%%%%% ABSTRACT
 \begin{abstract}
-   We evaluate adapters as a parameter efficient alternative to fine-tuning a model for a given task. We first fine-tune a pre-trained model to perform a given task and then use the same pre-trained model to introduce adapter modules and perform the same task using an adapter-based approach. We see that adapters can achieve comparable performance to fine-tuning. A similar observation can be made even when the model undergoes a second-phase of task-adaptive pre-training before fine-tuning. Beyond comparable performance, adapters have significant benefits over fine-tuning, in terms of greatly reduced trainable parameters, ability to perform sequential training on tasks, and combining multiple adapters to create a single model capable of performing multiple tasks.
+
+   We evaluate adapters as a parameter efficient alternative to conventional fine-tuning methods for adapting a pre-trained models to out-of-domain tasks. We take a base model RoBERTa and second-phase pre-trained variations of it, and employ a dual approach: i) fine-tune the base model to perform a specific task, and ii) train adapter modules for the same task. We observe that adapters can achieve comparable performance to fine-tuning. A similar observation can be made even when the model undergoes a second-phase of task-adaptive pre-training before fine-tuning. Beyond comparable performance, adapters have significant benefits over fine-tuning, in terms of greatly reduced trainable parameters, ability to perform sequential training on tasks, and combining multiple adapters to create a single model capable of performing multiple tasks.
 \end{abstract}
 
 %%%%%%%%% BODY TEXT
@@ -67,158 +71,177 @@ Adapters are more lightweight, modular and composable than traditional fine-tuni
 Throughout the study, we evaluate our models and compare them by the F1-Macro Score and the number of trainable parameters of their network, with specific focus on traditional fine-tuning, TAPT pre-training, and adapter methods. Albeit we focus on a small number of low-resource tasks ($<$ 5K records), the results support the potential of adapters as a parameter-efficient contestant to fine-tuning and as a viable alternative to TAPT for some use-cases, such as mid-sized ($>$ 3K) datasets.
 
 \subsection{Current State} A common practice today is to start with a model pre-trained on a broad corpus of information (such as books, websites and other general domains) and then use fine-tuning to train the model for a particular task. If the task sits within a specific domain not originally covered by model, continued  pre-training can be done on specific unlabelled corpus. Once a baseline pre-trained model has been established, task specific heads are added as the final layers, which get co-trained with the baseline weights using task specific labeled data. Fine-tuning has been shown to be very effective at performing a given task.
+
+
+
+\begin{table*}[h]
+    \centering
+    \begin{tabular}{ l r r r }
+        \hline
+        \textbf{Model} & \textbf{Parameter Counts} & \textbf{Parameters Trained} & \textbf{Percentage Trained} \\
+        \hline
+        RoBERTa and full fine-tuning & 124,650,246 & 124,650,246 & 100.00\% \\
+        Pfeiffer Adapters & 126,777,759 & 2,127,513 & 1.71\% \\
+        Houlsby Adapters & 127,672,287 & 3,022,041 & 2.42\% \\
+        \hline
+    \end{tabular}
+    \caption{\textbf{Model Parameters and Training Percentage for Pre-Training, Fine-Tuning and Adapters}}
+    \label{tab:model-parameters}
+\end{table*}
+
 \begin{itemize}
 \item \textbf{Pre-Trained Models} like RoBERTa, a bidirectional encoder model, uses techniques like Masked Language Modeling (MLM) and Next Sentence Prediction (NSP) to learn a deep understanding of language structure and continuity. An optional second phase of pre-training \cite{gururangan2020dont} continues the process on new data using the same unsupervised learning objectives. The internal weights and embeddings of the model are shifted to better represent the vocabulary and patterns found in the new data. These processes are often quite demanding in terms of data and compute resources.
 
 \item \textbf{Full Fine-Tuning} is then used retrain the entire model on the task data. While this would likely lead to the best performance, studies have shown that earlier layers of the pre-trained model generally learn broad semantic and syntactic features and those don’t really change for any given task. Limitations of fine-tuning include the need to store and share a complete set of weights for each task, and the requirement to train all tasks simultaneously to avoid catastrophic forgetting \cite{mccloskey1989catastrophic}.
 
-\item \textbf{Variable Fine-Tuning} arises as a more efficient way to fine-tune. Researchers have shown that Parameter-Efficient-Fine-Tuning (PEFT) methods that focus only on a small proportion of model weights (original or new), while keeping the remaining weights frozen, can match the performance of traditional full fine-tuning methods \cite{houlsby2019parameter} and address some of their limitations, largely as they preserve much of the original knowledge while still adapting to new tasks. 
-
+\item \textbf{Variable Fine-Tuning} arises as a more efficient way to fine-tune. Researchers have shown that Parameter-Efficient-Fine-Tuning (PEFT) methods that focus only on a small proportion of model weights (original or new), while keeping the remaining weights frozen, can match the performance of traditional full fine-tuning methods \cite{houlsby2019parameter} and address some of their limitations, largely as they preserve much of the original knowledge while still adapting to new tasks. Some examples of PEFT methods include adapters, which are small neural modules that are added to the pre-trained model and trained only on the task data.
 \end{itemize}
-\subsection{Motivation}  Fine-tuning has several benefits as it allows to use the learned representations of large pre-trained models for specific tasks. However, it also has some
-drawbacks.
+
+\subsection{Motivation}  
+\label{sec.motivation}
+Fine-tuning has several benefits as it allows to use the learned representations of large pre-trained models for specific tasks. However, it also has some drawbacks:
 
 \begin{itemize}
     \item Fine-tuning involves training a large number of parameters for each task. For large models which can be 100s of MB, storing and sharing a complete set of weights for each task can limit multi-task applications.
-    \item All tasks must be trained simultaneously. Sequential fine-tuning for multiple tasks leads to catastrophic forgetting \cite{mccloskey1989catastrophic}
+    \item All tasks must be trained simultaneously, limiting scalability. Sequential fine-tuning for multiple tasks leads to catastrophic forgetting \cite{mccloskey1989catastrophic}
 \end{itemize}
-Adapters do not suffer from these drawbacks \cite{houlsby2019parameter}. The number of trained parameters is a tiny fraction compared to fine-tuning, significantly reducing the computational resources for fine-tuning \ref{tab:model-parameters}. Additionally, adapters are modular as multiple adapters can be loaded onto the same base model to perform multiple tasks, eliminating the need for a copy of the base model for each task. Further, as they preserve the original model weights, they are more capable of maintaining the base model integrity and performance across tasks.
+Adapters do not suffer from these drawbacks \cite{houlsby2019parameter}. The number of trained parameters is a tiny fraction compared to fine-tuning, significantly reducing the computational resources for fine-tuning as shown in \Cref{tab:model-parameters}. Additionally, adapters are modular as multiple adapters can be loaded onto the same base model to perform multiple tasks, eliminating the need for a copy of the base model for each task. Further, as they preserve the original model weights, they are more capable of maintaining the base model integrity and performance across tasks.
 
 Gururangan et al. \cite{gururangan2020dont} highlights the benefits of domain-adaptive pre-training (DAPT) and task-adaptive pre-training (TAPT), which tailor the pre-training phase to more closely align with the characteristics of the target tasks, potentially enhancing subsequent fine-tuning outcomes. For instance, they expose low vocabulary overlap between RoBERTa and the domain of Computer Science, and find that continued pre-training on this domain is beneficial for related tasks. Their insights are crucial for informing more efficient strategies for effective task-specific tuning, although they rely on expensive methods of retraining and fine-tuning. In “Parameter-Efficient Transfer Learning for NLP” \cite{houlsby2019parameter}, the authors show that adapters attain within 0.4\% of the performance of full-fine-tuning, adding only 3.6\% parameters per task. The paper used the BERT transformer as its pre-trained model and used tasks from the GLUE benchmark to prove its assertions. 
 
 We study parameter-efficient task adaptation using the RoBERTa model, which is a more robust version of BERT \cite{liu2019roberta}, and compare the results to those of \cite{gururangan2020dont}. As per \cite{houlsby2019parameter}, we expect the performance of adapters to be comparable to full fine-tuning, and further explore the capabilities for adapters as a viable alternative to TAPT to perform on out-of-domain tasks.
 
 \begin{table*}[h]
-  \centering
-  
-  \begin{tabular}{ l l l r r r r }
-    \hline
-    \textbf{Domain} & \textbf{Task} & \textbf{Label Type} & \textbf{Train} & \textbf{Dev}   & \textbf{Test}  & \textbf{Classes} \\
-    \hline
-    Computer Science & ACL-ARC & citation intent & 1,688 & 114   & 139   & 6 \\
-                     & SCIERC  & relation classification & 3,219 & 455   & 974   & 7 \\
-    \hline
-    BIOMED           & CHEMPROT & relation classification & 4,169 & 2,427 & 3,469 & 13 \\
-    \hline
-  \end{tabular}%
-  \caption{\textbf{Dataset Statistics}}
-  \label{tab:dataset-stats}%
-\end{table*}%
-
-
-\begin{table*}[h]
     \centering
-    
-    \begin{tabular}{ l r r r }
-        \hline
-        \textbf{Model} & \textbf{Parameter Counts} & \textbf{Parameters Trained} & \textbf{Percentage Trained} \\
-        \hline
-        RoBERTa & 124,650,246 & 124,650,246 & 100.00\% \\
-        Pfeiffer Adapters & 126,777,759 & 2,127,513 & 1.71\% \\
-        Houlsby Adapters & 127,672,287 & 3,022,041 & 2.42\% \\
-        \hline
-    \end{tabular}
-    \caption{\textbf{Model Parameters and Training Percentage}}
-    \label{tab:model-parameters}
-\end{table*}
-
+    \begin{tabular}{ l l l r r r r }
+      \hline
+      \textbf{Domain} & \textbf{Task} & \textbf{Label Type} & \textbf{Train} & \textbf{Dev}   & \textbf{Test}  & \textbf{Classes} \\
+      \hline
+      Computer Science & ACL-ARC & citation intent & 1,688 & 114   & 139   & 6 \\
+                       & SCIERC  & relation classification & 3,219 & 455   & 974   & 7 \\
+      \hline
+      BIOMED           & CHEMPROT & relation classification & 4,169 & 2,427 & 3,469 & 13 \\
+      \hline
+    \end{tabular}%
+    \caption{\textbf{Dataset Statistics}}
+    \label{tab:dataset-stats}%
+  \end{table*}%
 
 %-------------------------------------------------------------------------
 %------------------------------------------------------------------------
 \section{Approach}
-Our objective is to establish adapters as a suitable transfer learning approach for a given task, as compared with fine-tuning and task-adaptive pretraining methods. For this we recreate the baseline that was used in the transfer learning paper \cite{gururangan2020dont}. We then take the four pre-trained models (RoBERTa base, DAPT, TAPT, DAPT-TAPT) per task and train adapters under two configurations, Pfeiffer and Houlsby. Our results are directly comparable to the original paper \cite{gururangan2020dont} and our own reproduction of their results.
+Our objective is to establish adapters as a suitable transfer learning approach for a given task, as compared with fine-tuning and task-adaptive pretraining methods. For this we recreate a fine-tuning the baseline that was used in the transfer learning paper \cite{gururangan2020dont}. We then take the four pre-trained models (RoBERTa base, DAPT, TAPT, DAPT-TAPT) per task and train adapters under two configurations, Pfeiffer and Houlsby. Our results are directly comparable to the original paper \cite{gururangan2020dont} and our own reproduction of their results.
 
-\subsection{Data, Domain, and Tasks} We take data available to download by Allen Institute \cite{allenai_dont_stop_pretraining}. Our scope \footnote{Attempts were made to train on high-resource tasks, but due to computational demands, this was infeasible within our timeframe and is set as a future objective. We further exclude the low-resource NEWS task HYPERPARTISIAN as the test/validation dataset is very small and has only 2 classes - this leads to inconsistent results from \cite{allenai_dont_stop_pretraining} under our current set-up, again to be investigated as a future objective.} is a subset of tasks from \cite{gururangan2020dont} that includes two tasks under the CS domain, ACL-ARC (citation-intent) and SCIERC (relation classification), and one task from BIOMED domain, CHEMPROT (relation classification) to test our hypothesis under a new domain. All these tasks have under 5,000 training records (i.e., low-resource). Table \ref{tab:dataset-stats}.
+\subsection{Data, Domain, and Tasks} 
+We take data available to download by Allen Institute \cite{allenai_dont_stop_pretraining}. Our scope outlined in \Cref{tab:dataset-stats} is a subset of tasks from \cite{gururangan2020dont} that includes two tasks under the CS domain, ACL-ARC (citation-intent) and SCIERC (relation classification), and one task from BIOMED domain, CHEMPROT (relation classification) to test our hypothesis under a new domain. All these tasks have under 5,000 training records (i.e., low-resource) \footnote{Attempts were made to train on high-resource tasks, but due to computational demands, this was infeasible within our timeframe and is set as a future objective. We further exclude the low-resource NEWS task HYPERPARTISIAN as the test/validation dataset is very small and has only 2 classes - this leads to inconsistent results from \cite{allenai_dont_stop_pretraining} under our current set-up, again to be investigated as a future objective.}.
 
-The task datasets show similar class distribution and are imbalanced \textcolor{blue}{[TODO - APPENDIX]}. Therefore, we use the F1 score as our evaluation metric, which is a better measure for imbalanced datasets. The F1 score is the harmonic mean of precision and recall, and is a better measure for imbalanced datasets. Also, this is the same metric used in the original paper \cite{gururangan2020dont} so it allows for comparison of results.
+The task datasets have similar class distribution and are imbalanced, as shown in \Cref{fig:datasetbalance}. Therefore, we use the F1 score as our evaluation metric \footnote{Following \cite{gururangan2020dont}, we use macro-f1 for our CS tasks and micro-f1 for the CHEMPROT task}, which is a better measure for imbalanced datasets. The F1 score is the harmonic mean of precision and recall, and is a better measure for imbalanced datasets. Also, this is the same metric used in the original paper \cite{gururangan2020dont} so it allows for comparison of results.
 
 \subsection{Methodology} 
 
-\textbf{Base Models and Fine-Tuning} For reproduction, we first aimed to use the same set-up as in \cite{allenai_dont_stop_pretraining} but encountered limitations on compatibility with newer packages and versioning. Therefore, we chose the widely used HuggingFace Transformers library \cite{transformers} for training our models. We load the pre-trained models from \cite{allenai_dont_stop_pretraining} available in HuggingFace, and fine-tune by training a classification head in supervised manner using the same task-specific datasets and approach \cite{gururangan2020dont}. We were able to recreate results that are close-enough to the reference paper (better in some cases), but further efforts may be needed for closer replication and inspection of original process \footnote{Although benchmark fine-tuning results broadly align, there are some differences, likely due to differences in infrastructure, libraries used, and possibly unreported training parameters. Biggest relative difference is our F1 roberta-base for ACL-ARC at 66.34 while Gururangan’s is 63.00}. The F1 metric from our version of fine-tuning results is taken as a benchmark to assess the performance of adapter methods.
+\textbf{Base Models and Fine-Tuning} For reproduction, we first aimed to use the same set-up as in \cite{allenai_dont_stop_pretraining} but encountered limitations on compatibility with newer packages and versioning. Therefore, we chose the widely used HuggingFace Transformers library \cite{transformers} for training our models. We load the pre-trained models from \cite{allenai_dont_stop_pretraining} made publicly available \ref{tab:base_models}, and fine-tune by training a classification head in supervised manner using the same task-specific datasets and similar approach to \cite{gururangan2020dont}. We were able to recreate results that are close-enough to the reference paper (better in some cases), but further efforts may be needed for closer replication and inspection of original process \footnote{Although benchmark fine-tuning results broadly align, there are some differences, likely due to differences in infrastructure, libraries used, and possibly unreported training parameters. Biggest relative difference is our F1 roberta-base for ACL-ARC at 66.34 while Gururangan’s is 63.00}. The F1 metric from our version of fine-tuning results is taken as a benchmark to assess the performance of adapter methods.
 
-\textbf{Adapters}  To assess the efficacy of adapter methods, for every task we add task-specific adapters (and a prediction head) to each of the base models and train them on the task-specific data. For training and managing adapters, we use AdapterHub’s library \cite{adapterhub_overview} and two of their adapter architectures: Pfeiffer \cite{pfeiffer2020adapterhub} a lightweight configuration that adds the adapter modules between the feed-forward layers, and Houlsby \cite{houlsby2019parameter} which can handle more complexity as it adds adapter modules between the multi-head attention layer. The APPENDIX \ref{sec:pfeiffermodel} \ref{sec:houlsbymodel} shows examples of the adapter modules added to the model for both configurations. We compare results under two scopes: direct fine-tuning comparison, and continued taks-adaptive pre-training comparison.
+\textbf{Adapters}  To assess the efficacy of adapter methods, we integrate task-specific adapters (and a prediction head) to each of the base models and train them separately using task-specific data. For training and managing configurations, we use AdapterHub \cite{adapterhub_overview} and two architectures: 
+\begin{itemize}
+\item Pfeiffer \cite{pfeiffer2020adapterhub} is a lightweight configuration that adds adapter modules between feed-forward layers. This minimally disrupts the base representations and maintains ability to generalize while adapting to new tasks. 
+\item Houlsby \cite{houlsby2019parameter} can handle more complexity as it also adds adapters within the multi-head attention layers of each block. This allows the adapters to modulate both the attention outputs and feedforward operations, potentially offering more task-specific adaptation.
+\end{itemize}
+The \ref{sec:model_layers} shows examples of the adapter modules added to the model for both configurations. We compare results under two scopes: direct fine-tuning comparison, and continued taks-adaptive pre-training comparison.
 
 
 \begin{figure}[h]
     \centering 
     \includegraphics[width=0.45\textwidth]{resources/SCIERC/v01/evaluation_macro_f1_across_seeds.png}
-    \caption{Optuna Hyperparameter Search for SCIERC Task}
+    \caption{Illustration: Optuna trial results show convergence to good hyperparamer choices, other tasks follow similar patterns}
+    \label{fig:optuna_search_trials}
+\end{figure}
+
+\begin{figure}[h]
+    \centering 
+    \includegraphics[width=0.45\textwidth]{resources/tmp_optuna_search.png}
+    \caption{Illustration: Optuna Hyperparameter Search of combinations for roberta-base SCIERC Task (Houlsby)}
     \label{fig:optuna_search}
 \end{figure}
 
+\subsection{Hyperparameter Search and Model Training} 
 
-\subsection{Hyperparameter Search} Optuna was chosen as our hyperparameter optimization framework, especially useful in adapter training to traverse the combinations of learning rates, batch sizes and epochs. The framework proved useful for streamlining the hyperparameter search and selecting the next set-up that would likely lead to an improvement in the F1 performance metric, as showin in \ref{fig:optuna_search}. Each combination runs within a trial, and each trial is composed of 5 random seeds \footnote{The processes we ran also showed a lot of stochasticity across runs. We smoothed out most of the variance by the use of five random seeds, which helped in comparing across different runs. This is in line with \cite{allenai_dont_stop_pretraining} who report high standard deviation in their results, and also follow a 5-seed mean approach.}. The mean F1 on the test dataset is set as a performance metric for each trial, and we report this together with its standard deviation across the seeds. \textcolor{blue}{[TODO -> POINT TO APPENDIX FOR BEST HYPERPARAMETERS FOUND + LIST SEARCH RANGE FOR ADAPTERS]}
+For training our adapters, by focusing on hyperparameter efficiency and robust training techniques, we achieved competitive results against traditional fine-tuning approaches, as detailed in our results from \Cref{table:aclarc} with configuration \ref{table:fine_tuning_hyperparameters}. Our approach demonstrates that adapters, when optimized properly, can effectively leverage pre-trained models for task-specific applications, and be on-par or surprass our baseline fine-tuning strategies.
 
+\textbf{Hyperparameter Search:} Optuna \cite{optuna} was chosen as our hyperparameter optimization framework, especially useful in adapter training to traverse the combinations of learning rates, batch sizes and epochs. For a given search range \ref{table:optuna_search_space}, the framework applies Tree-Structured Parzen Estimator (TPE) that allowed for quick convergence to optimal settings, as illustrated in \Cref{fig:optuna_search_trials}. Each combination runs within a trial, and each trial is composed of 5 random seeds \footnote{The processes we ran also showed a lot of stochasticity across runs. We smoothed out most of the variance by the use of five random seeds, which helped in comparing across different runs. This is in line with \cite{allenai_dont_stop_pretraining} who report high standard deviation in their results, and also follow a 5-seed mean approach.}. The mean F1 on the test dataset is set as a performance metric for each trial, and we report this together with its standard deviation across the seeds. Smaller datasets often benefit from more granular updates (i.e., small batches) and moderate learning rattes prevent overfitting. Our best hyperparameters reflect this, as shown in \Cref{fig:optuna_search} and
+\Cref{table:best_hyperparameters_adapters}. The number of training epochs does not show a clear correlation with the F1 score, as the models seem to require few iterations to capture task specifics.
+
+\textbf{Training Optimization:} All models were trained using the Adam optimizer with L2 regularization, which is standard within the HuggingFace Transformers library. Since our tasks were all related to classification, cross-entropy loss was used for training. We adapted the learning rate and batch size based on outcomes from the Optuna search to maximize F1 score. Our experiments show robust performance across multiple training seeds, as shown in \Cref{fig:learning_curve}.
 
 \begin{table*}[h]
     \centering
-    \label{table:aclarc}
-    \begin{tabular}{@{}lcc|cc|c@{}}
+    \begin{tabular}{@{}lcc|lc|cc|@{}}
     \toprule
-    \textbf{Pre-trained Model} & \multicolumn{2}{c|}{Fine-Tuning} & \multicolumn{2}{c}{Adapters} \\
-    \cmidrule(lr){2-3} \cmidrule(lr){4-5}
-    & Gururangan & Our Baseline & Pfeiffer & Houlsby & \textbf{Adapter Fussion}  \\
+    \textbf{Pre-trained Model} & \multicolumn{2}{c}{Fine-Tuning} & \multicolumn{2}{c}{Adapters} & \multicolumn{2}{c}{Adapter Fusion} \\
+    \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
+    & Gururangan & Our Baseline & Pfeiffer & Houlsby & Within & Cross \\
     \midrule
     \multicolumn{1}{c}{\textbf{ACL-ARC}} \\
-    ROBERTA & 63.00$_{\text{ 5.80}}$ & 66.34$_{\text{ 4.67}}$ & 67.12$_{\text{ 1.85}}$ & 65.53$_{\text{ 1.30}}$ & \textbf{68.46}$_{\text{ 3.43}}$ \\ 
-    TAPT & 67.40$_{\text{ 1.80}}$ & \textbf{69.49}$_{\text{ 2.24}}$ & 67.22$_{\text{ 3.92}}$ & 65.12$_{\text{ 1.22}}$ &  \\ 
-    DAPT & \underline{75.40}$_{\text{ 2.50}}$ & \textbf{74.65}$_{\text{ 3.33}}$ & 73.32$_{\text{ 1.79}}$ & 74.03$_{\text{ 3.36}}$ & 70.36$_{\text{ 1.87}}$ \\ 
-    DAPT\_TAPT & \underline{75.60}$_{\text{ 3.80}}$ & \textbf{74.89}$_{\text{ 2.48}}$ & 73.20$_{\text{ 2.84}}$ & 72.24$_{\text{ 1.55}}$ & -\\ 
+    ROBERTA & 63.00$_{\text{ 5.80}}$ & 66.34$_{\text{ 4.67}}$ & 67.12$_{\text{ 1.85}}$ & 65.53$_{\text{ 1.30}}$ & \textbf{73.30}$_{\text{ 0.38}}$  \\
+    TAPT & 67.40$_{\text{ 1.80}}$ & \textbf{69.49}$_{\text{ 2.24}}$ & 67.22$_{\text{ 3.92}}$ & 65.12$_{\text{ 1.22}}$ & & \\ 
+    DAPT & \underline{75.40}$_{\text{ 2.50}}$ & \textbf{74.65}$_{\text{ 3.33}}$ & 73.32$_{\text{ 1.79}}$ & 74.03$_{\text{ 3.36}}$ & 73.59$_{\text{ 0.49}}$ & \\ 
+    DAPT\_TAPT & \underline{75.60}$_{\text{ 3.80}}$ & \textbf{74.89}$_{\text{ 2.48}}$ & 73.20$_{\text{ 2.84}}$ & 72.24$_{\text{ 1.55}}$ & - & \\ 
     \midrule
     \multicolumn{1}{c}{\textbf{SCIERC}} \\
-    ROBERTA & 77.30$_{\text{ 1.90}}$ & 80.02$_{\text{ 1.20}}$ & \textbf{81.60}$_{\text{ 0.42}}$ & 81.32$_{\text{ 0.71}}$ & 79.84$_{\text{ 0.26}}$ \\ 
-    TAPT & 79.30$_{\text{ 1.50}}$ & \textbf{80.95}$_{\text{ 0.74}}$ & 80.80$_{\text{ 1.35}}$ & 80.92$_{\text{ 0.76}}$ &  \\ 
-    DAPT & 80.80$_{\text{ 1.50}}$ & \textbf{83.08}$_{\text{ 1.16}}$ & 82.48$_{\text{ 0.54}}$ & 82.55$_{\text{ 0.81}}$ & 81.32$_{\text{ 0.46}}$ \\ 
-    DAPT\_TAPT & 81.30$_{\text{ 1.80}}$ & 81.55$_{\text{ 0.74}}$ & 81.47$_{\text{ 0.70}}$ & \textbf{88.81}$_{\text{ 0.58}}$ &  \\ 
+    ROBERTA & 77.30$_{\text{ 1.90}}$ & 80.02$_{\text{ 1.20}}$ & \textbf{81.60}$_{\text{ 0.42}}$ & 81.32$_{\text{ 0.71}}$ & 80.32$_{\text{ 0.21}}$ & 80.32$_{\text{ 0.15}}$ \\ 
+    TAPT & 79.30$_{\text{ 1.50}}$ & \textbf{80.95}$_{\text{ 0.74}}$ & 80.80$_{\text{ 1.35}}$ & 80.92$_{\text{ 0.76}}$ & & \\ 
+    DAPT & 80.80$_{\text{ 1.50}}$ & \textbf{83.08}$_{\text{ 1.16}}$ & 82.48$_{\text{ 0.54}}$ & 82.55$_{\text{ 0.81}}$ & 81.64$_{\text{ 0.28}}$ & 81.53$_{\text{ 0.63}}$ \\ 
+    DAPT\_TAPT & 81.30$_{\text{ 1.80}}$ & 81.55$_{\text{ 0.74}}$ & 81.47$_{\text{ 0.70}}$ & \textbf{88.81}$_{\text{ 0.58}}$ & & \\ 
     \midrule
     \multicolumn{1}{c}{\textbf{CHEMPROT}} \\
-    ROBERTA & \underline{81.90}$_{\text{ 0.10}}$ & 80.69$_{\text{ 0.55}}$ & 80.38$_{\text{ 0.52}}$ & \textbf{80.95}$_{\text{ 0.40}}$ &  \\ 
-    TAPT & \underline{82.60}$_{\text{ 0.40}}$ & 79.88$_{\text{ 0.66}}$ & \textbf{80.80}$_{\text{ 0.45}}$ & 80.67$_{\text{ 0.65}}$ &  \\ 
-    DAPT & \underline{84.20}$_{\text{ 0.20}}$ & 81.72$_{\text{ 0.41}}$ & 81.85$_{\text{ 0.51}}$ & \textbf{82.16}$_{\text{ 0.68}}$ &  \\ 
-    DAPT\_TAPT & \underline{84.40}$_{\text{ 0.40}}$ & 81.71$_{\text{ 0.92}}$ & 81.67$_{\text{ 0.39}}$ & \textbf{82.29}$_{\text{ 0.40}}$ &  \\
+    ROBERTA & \underline{81.90}$_{\text{ 0.10}}$ & 80.69$_{\text{ 0.55}}$ & 80.38$_{\text{ 0.52}}$ & \textbf{80.95}$_{\text{ 0.40}}$ & & \\ 
+    TAPT & \underline{82.60}$_{\text{ 0.40}}$ & 79.88$_{\text{ 0.66}}$ & \textbf{80.80}$_{\text{ 0.45}}$ & 80.67$_{\text{ 0.65}}$ & & \\ 
+    DAPT & \underline{84.20}$_{\text{ 0.20}}$ & 81.72$_{\text{ 0.41}}$ & 81.85$_{\text{ 0.51}}$ & \textbf{82.16}$_{\text{ 0.68}}$ & & \\ 
+    DAPT\_TAPT & \underline{84.40}$_{\text{ 0.40}}$ & 81.71$_{\text{ 0.92}}$ & 81.67$_{\text{ 0.39}}$ & \textbf{82.29}$_{\text{ 0.40}}$ & & \\
     \bottomrule
     \end{tabular}
-    \caption{\textbf{Comparison of Fine-tuning and Adapter Methods} We show baseline from the original paper \cite{gururangan2020dont} for reference but use our baseline for comparison with other methods. The best results are in bold (where \cite{gururangan2020dont} wins, its underlined). We further add results for Adapter Fussion, that is based on Pfeiffer (?) adapters.}
+    \caption{\textbf{Comparison of Fine-tuning and Adapter Methods} We show baseline from the original paper \cite{gururangan2020dont} for reference but use our baseline for comparison with other methods. The best results are in bold (where \cite{gururangan2020dont} wins, its underlined). We further add results for Adapter Fusion, that is based on Pfeiffer adapters. Adapter Fusion was performed for within domain tasks (e.g., fuse ACL-ARC and SCIERC) and cross-domain tasks (e.g., fuse ACL-ARC and CHEMPROT).}
+    \label{table:aclarc}
 \end{table*}
-
-\subsection{Hypothesis} 
-\textcolor{red}{[DO WE NEED THIS SECTION HERE? THE HYPOTHESIS IS ALREADY STATED IN THE INTRODUCTION AND OTHER PLACES]}
-Based on recent research showing the efficacy of adapters at performing on par with fine-tuning approaches \cite{houlsby2019parameter}, we felt confident that we can get comparable results with adapters. Adapters allow for a lot of flexibility with smaller number of trainable parameters, ability to stack multiple adapters onto the same model, and sequential learning on multiple tasks. Further, we were not very sure if our datasets, given their small size, would be able to highlight any differences between the Pfeiffer and Houlsby architectures. Given the higher number of trainable parameters with Houlsby configuration, we expected Houlsby to have a better performance.
-
-\subsection{Optimization} By using Optuna for hyper-parameter optimization, we were able to create better adapter based results. We used the huggingface library transformers and adapters for our training, which use the Adam optimizer (default) with L2 regularization \textcolor{blue}{[POINT TO APPENDIX FOR TRAINING CONFIGS/ETC]}. Since our tasks were all related to classification, cross-entropy loss was used for training. 
 
 
 \begin{figure}[h]
     \centering 
-    \includegraphics[width=0.45\textwidth]{resources/example_learning_curve.png}
-    \caption{Example of Learning Curve for Adapters on SCIERC Task}
+    \includegraphics[width=0.45\textwidth]{resources/SCIERC/v01/learning_curves_adapter.png}
+    \caption{Example of Learning Curve convergence for roberta-base SCIERC Task (Houlsby) for the 5 seeds in best trial}
     \label{fig:learning_curve}
 \end{figure}
+\subsection{Approach Remarks} 
+Based on recent research showing the efficacy of adapters at performing on par with fine-tuning approaches \cite{houlsby2019parameter}, we felt confident that we can get comparable results with adapters. However, we take as baseline our reproduced results for fine-tuning as in \cite{gururangan2020dont}, which may not have been the best fine-tuning results possible for our tasks. We also note that the results of our fine-tuning are better than the original paper, which may be due to differences in infrastructure, libraries used, and possibly unreported training parameters.
+
+Given the higher number of trainable parameters for adapters with Houlsby configuration, we expected Houlsby to have a better performance. Since we train on low-resource (small) datasets, the full benefits of the additional complexity of Houlsby may not be entirely realized in our experiments.
+
+
 
 \section{Experiments and Results}
 
-\textcolor{red}{[DO WE NEED THIS INTRO?]} For our fine-tuning experiments, we add a classifier layer to the pre-trained models and co-train all the pre-trained weights and the classifier with the task data. For our adapters-based experiments, we add the adapters to the pre-trained models and the classification heads. We then train the adapters, which only trains the adapter layers and the final classification heads, without changing any of the pre-trained weights.
+For our fine-tuning experiments, we add a classifier layer to the pre-trained models and co-train all the pre-trained weights and the classifier with the task data. For our adapters-based experiments, we add the adapters to the pre-trained models and the classification heads. We then train the adapters, which only trains the adapter layers and the final classification heads, without changing any of the pre-trained weights.
 
 \subsection{Results}
 
 
-Table \ref{tab:model-parameters} shows the total parameter counts of the models when using fine-tuning and the adapters. Note that the Pfeiffer configuration is much more parameter-efficient than the Houlsby configuration, as it introduces fewer layers. A sample of the layers can be found in the appendix \ref{sec:pfeiffermodel} \ref{sec:houlsbymodel}.
+\Cref{tab:model-parameters} shows the total parameter counts of the models when using fine-tuning and the adapters. Note that the Pfeiffer configuration is much more parameter-efficient than the Houlsby configuration, as it introduces fewer layers. A sample of the layers can be found in \ref{sec:model_layers}.
 
 
 
-\subsection{Adapters vs Fine-Tuning} Based on our empirical results \ref{tab.adaptersvsftresults}, we see that adapters were able to achieve similar performance as full fine-tuning. \textcolor{red}{[suggest to delete] There is some variation attributable to optimal hyper-parameter settings and the limited time and resources we used to conduct these experiments. However,} the results clearly demonstrate \textcolor{blue}{Can we discuss an example or point to a general pattern? i.e., seems that ACL-ARC results are comparable, and for chemprot superior, SCIERC is mixed but certainly a good alternative, with the outlier of DAPT\_TAPT which probably requires further investigation and confirmation} the capacity of adapters to be as effective at transfer learning as full fine-tuning. The comparison of the models \ref{tab:model-parameters} shows that the adapters needed just a fraction of the total parameters (1.71\% and 2.42\%) to be trained to achieve comparable results. While this is a very small sample set, other works have shown similar results \cite{houlsby2019parameter} with adapters and our experiments are in-line with the expectations.
+\subsection{Adapters vs Fine-Tuning} 
 
+Based on our empirical results in \Cref{table:aclarc}, we see that both adapter configurations, Pfeiffer and Houlsby, were able to achieve on-par performance as full fine-tuning. The Pfeiffer configuration has an average difference of -0.33\% vs full fine-tuning and the Houlsby configuration shows a difference of 0.17\% \ref{table:adaptersvsft} \footnote{The Houlsby results have an outlier for SciERC and dapt\_tapt that performs 8.9\% better than fine-tuning. Future work will investigate this outlier for confirmation of results.}. This is in line with the results shown in other studies \cite{houlsby2019parameter}. The results clearly demonstrate the capacity of adapters to be as effective at transfer learning as full fine-tuning. The comparison of the models in \Cref{tab:model-parameters} also shows that the adapters needed just a fraction of the total parameters (1.71\% for Pfeiffer and 2.42\% for Houlsby) to be trained to achieve comparable results. 
 
-\subsection{Adapters vs Continued Pre-Training} Adapters serve as both a complement to traditional fine-tuning and as a standalone alternative, offering targeted task optimization while reducing computational costs, which is especially beneficial in settings with limited resources.
+This is quite a significant advantage of adapters, as they allow us to achieve the same results in transfer learning as full-fine-tuning, with just a tiny fraction of the trainable parameters needed for full fine-tuning. As discussed earlier, in \Cref{sec.motivation}, this was one of the motivations for this study.
 
-In addition, from \ref{table:adapters_vs_tapt} we observe that using adapters without additional task-specific pre-training (Adapter (Base)) provided comparable performance to using TAPT. This provides indication that, for some cases, adapters can serve as an alternative to TAPT, possibly due to an ability to infuse task-specific knowledge into the network throught the new layers. This is especially useful for low-resource tasks, where the cost of additional pre-training may not be justified. It's possible that TAPT may not provide as much benefit over adapters since the task-specific terms may not be well-represented in the pre-training corpus. Adapters, however, allow for more targeted adjustments to the model, focusing specifically on the task-relevant aspects of the language without requiring extensive re-training of the model.
+\subsection{Adapters vs Continued Pre-Training} 
 
-The experiments suggest that domain-specific pre-training (DAPT) provides a strong foundation for tasks within that domain, and adapters can effectively leverage and build upon this foundation. Adapters appear to be effective across different sizes of datasets. For smaller datasets, like ACL-ARC and SCIERC, they can provide the necessary specialization without extensive re-training. For larger datasets, such as CHEMPROT, adapters actually improve performance, indicating their utility across different scales of data availability.
+Adapters serve as both a complement to traditional fine-tuning and as a standalone alternative, offering targeted task optimization while reducing computational costs, which is especially beneficial in settings with limited resources.
 
+From \Cref{table:adapters_vs_tapt} we further observe that using adapters without additional task-specific pre-training (as indicated by Adapter (Base)) provided comparable performance to using TAPT plus fine-tuning. This provides indication that, for some cases, adapters can serve as an alternative to TAPT, possibly due to an ability to infuse task-specific knowledge into the network throught the new layers. This is especially useful for low-resource tasks, where the cost of additional pre-training may not be justified. It's possible that TAPT may not provide as much benefit over adapters in our experiments since the task-specific terms may not be well-represented in the first phase pre-training corpus. Adapters allow for more targeted adjustments to the model, focusing specifically on the task-relevant aspects of the language without requiring extensive re-training of the model.
 
 \begin{table}[H]
     \centering
-    \label{table:adapters_vs_tapt}
     \begin{tabular}{@{}lccccc@{}}
     \hline
     Base PT Model & TAPT & \multicolumn{2}{c}{Adapter} \\
@@ -234,13 +257,18 @@ The experiments suggest that domain-specific pre-training (DAPT) provides a stro
     \hline
     \multicolumn{1}{c}{\textbf{CHEMPROT}}\\
     ROBERTA & 79.88$_{\text{ 0.66}}\downarrow$ & \textbf{80.95}*$_{\text{ 0.40}}$ & 80.80$_{\text{ 0.45}}$ \\
-    DAPT & 81.71$_{\text{ 0.92}}\downarrow$ & 81.85$_{\text{ 0.51}}$ & \textbf{82.29}*$_{\text{ 0.40}}$ \\
+    DAPT & 81.71$_{\text{ 0.92}}\downarrow$ & 82.16*$_{\text{ 0.51}}$ & \textbf{82.29}*$_{\text{ 0.40}}$ \\
 \end{tabular}
-\caption{\textbf{Adapters as an alternative to TAPT} The best results are in bold. Note that entries in the matrix that fall for DAPT and TAPT have three phases of pre-training (base, DAPT and TAPT). For Adapters, where it includes a * it refers to Houlsby adapters, otherwise is Pfeiffer. A down arrow$\downarrow$ in TAPT indicates its the lowest score in the row.}
+\caption{\textbf{Adapters as an alternative to TAPT} The best results are in bold. Note that entries in the matrix that fall for both DAPT and TAPT have three phases of pre-training (base, DAPT and TAPT). For Adapters, where it includes a * it refers to Houlsby adapters, otherwise is Pfeiffer. A down arrow$\downarrow$ in TAPT indicates its the lowest score in the row.}
+\label{table:adapters_vs_tapt}
 \end{table}
 
+The experiments suggest that domain-specific pre-training (DAPT) provides a strong foundation for tasks within that domain, and adapters can effectively leverage and build upon this foundation. Adapters appear to be effective across different sizes of datasets. For smaller datasets, like ACL-ARC and SCIERC, they can provide the necessary specialization without extensive re-training. For larger datasets, such as CHEMPROT, adapters actually improve performance, indicating their utility across different scales of data availability.
 
-\subsection{Pfeiffer vs Houlsby} Given the higher number of trainable parameters with Houlsby compared to Pfeiffer, we expected Houlsby configuration to perform better than Pfeiffer, in general. While the sample size is small to imply too broad a conclusion, we can see that for the chosen tasks and with the hyper-parameters chosen, the Houlsby configuration was slightly better than Pfeiffer, especially when the dataset is larger. When the datasets are small there is no discernible difference, as both configurations are equally capable of optimal learning. It is expected that Houlsby would be better generally, given the higher number of trained parameters introduced by the Houlsby configuration (2.42\% vs 1.71\%). However, Pfeiffer configuration does have a definite advantage of being more parameter-efficient and this would be a desirable quality when we are talking of lots of tasks. We could see a bit of tradeoff in parameter-efficient configuration vs task performance for bigger datasets.
+
+
+\subsection{Pfeiffer vs Houlsby} 
+Given the higher number of trainable parameters with Houlsby compared to Pfeiffer, we expected Houlsby configuration to perform better than Pfeiffer, in general. While the sample size of tasks is small to imply too broad a conclusion, we can see that for the chosen tasks and optimized training, the Houlsby configuration was slightly better than Pfeiffer, especially when the dataset is larger. When the datasets are small there is no discernible difference, as both configurations are equally capable of optimal learning. It is expected that Houlsby would be better generally, given the higher number of trained parameters introduced by the Houlsby configuration (2.42\% vs 1.71\%). However, Pfeiffer configuration does have a definite advantage of being more parameter-efficient and this would be a desirable quality when we are talking of lots of tasks. We could see a bit of tradeoff in parameter-efficient configuration vs task performance for bigger datasets.
 
 \subsection{Adapter Composition/Fusion}
 TBD
@@ -248,13 +276,21 @@ TBD
 
 
 
+
+
+
+
+
 \section{Conclusions}
-Through our experiments, we were able to demonstrate the capabilities of adapters to perform at par with fine-tuning alternatives for transfer learning tasks. While needing less than 3\% of the total trainable parameters as compared to fine-tuning, the adapters performance for the tasks matched full fine-tuning.
+Through our experiments with natural language, low-resource tasks that extend beyond the original training domains of RoBERTa, we were able to demonstrate the capabilities of adapters to perform at par with fine-tuning alternatives for transfer learning tasks. While needing less than 3\% of the total trainable parameters as compared to fine-tuning, the adapters performance for the tasks matched full fine-tuning.
 
-We also see that the benefits of pre-training across domain and task applied to adapters as well.
-Additionally, we also were able to compare the two popular adapter architectures – Pfeiffer and Houlsby. While the Houlsby architecture performed slightly better than the Pfeiffer architecture for our tasks and settings, Pfeiffer architecture was more parameter-efficient and comparable to Houlsby. 
+We also see that the benefits of pre-training across domain and tasks applied to adapters as well. Remarkably, adapters provided comparable or superior performance to TAPT, making them particularly valuable for low-resource settings with low budget or data availability for training. Additionally, through comparing the two popular adapter architectures – Pfeiffer and Houlsby, we find Houlsby performed slightly better when trained in our larger datasets, but the fact that Pfeiffer is more parameter-efficient and comparable to Houlsby in lower resource tasks makes it a competitive contestant. This is in line with expectations given Houlsby is naturally more adept for more complex tasks.
 
-Adapter composition allowed us to create a single model capable of performing multiple tasks using the parameter-efficient adapters. The combined model was at par with the individual adapters for each task since adapters do not suffer from forgetting previous tasks when learning new ones. This has significant benefits for inference, where the same model can perform multiple tasks as well as individual models, while requiring a much smaller size.
+% Colour red
+\textcolor{red}{We need to revisit this and re-purpose for Fusion}
+Adapter composition allowed us to create a single model capable of performing multiple tasks using the parameter-efficient adapters. The combined model was at par with the individual adapters for each task since, in theory, adapters do not suffer much from forgetting previous tasks when learning new ones. This has significant benefits for inference, where the same model can perform multiple tasks as well as individual models, while requiring a much smaller size.
+
+\textcolor{red}{To add strong closing statement, answer "Who Cares? What difference will it make?}
 
 Future work could explore additional adapter architectures, composition strategies, and their application across a wider range of NLP tasks and domains.
 
@@ -262,18 +298,15 @@ Future work could explore additional adapter architectures, composition strategi
 %-------------------------------------------------------------------------
 \onecolumn
 
+\appendix
+\renewcommand{\thesection}{Appendix \Alph{section}}
+\renewcommand{\thefigure}{\Alph{section}.\arabic{figure}}
+\renewcommand{\thetable}{\Alph{section}.\arabic{table}}
+
+\section{Appendix}
+
 \section{Team Members}
-
-
-
-
 Our team was made up of three members. We all participated in periodic zoom calls where we discussed the technical details and work allocation of the project with equal participation from all.
-
-\begin{itemize}
-    \item Girish Sharma worked on the initial experiments on fine-tuning and adapters, and later worked on different adapter configurations.
-    \item Matias Vizcaino worked on the implementation of the fine-tuning and adapter modules using Optuna on the PACE computers. He also studied the potential of adapters as an alternative to TAPT.
-    \item William Gleason worked on the adapter composition and fusion experiments
-\end{itemize}
 
 \begin{table*}[h]
 \begin{center}
@@ -282,7 +315,7 @@ Our team was made up of three members. We all participated in periodic zoom call
 \textbf{Student Name} & \textbf{Contributed Aspects} & \textbf{Details} \\
 \hline
 Girish Sharma & Implementation and Analysis & Initial fine-tuning and adapter experiments with 5 seeds. Used manual hyper-parameter optimization. Comparison of Pfeiffer and Houlsby adapter architectures.  \\
-Matias Vizcaino & Implementation and Analysis & Using Optuna-based hyper-parameter optimization for fine-tuning and adapter experiments. Created final results for fine-tuning and adapters. \\
+Matias Vizcaino & Implementation and Analysis & Using Optuna-based hyper-parameter optimization for fine-tuning and adapter experiments. Created final results for fine-tuning and adapters, studied the potential of adapters as an alternative to TAPT. \\
 William Gleason & Implementation and Analysis & Study of adapter composition using Adapter Fusion and other techniques. \\
 \hline
 \end{tabular}
@@ -293,280 +326,232 @@ William Gleason & Implementation and Analysis & Study of adapter composition usi
 \FloatBarrier
 
 
-\section{Appendix}
 \subsection{Task Dataset Balance}
 % Insert a figure that spans both columns
 \begin{figure*}[h] % 'h' suggests the figure appears in the specified location
     \centering % Center the image
-    \includegraphics[width=\textwidth]{./resources/DatasetBalance.png} % Make the image full page width
-    \caption{Class Distribution for ACL-ARC and SciERC datasets} % Add a caption
-    \label{fig:example} % Label the figure for cross-referencing
+    \includegraphics[width=0.8\textwidth]{./resources/label_distribution.png} % Make the image full page width
+    \caption{Class Distribution for task datasets} % Add a caption
+    \label{fig:datasetbalance} % Label the figure for cross-referencing
 \end{figure*}
-Showing the class distribution for the two tasks in the computer science domain. \ref{fig:example}
-\FloatBarrier
 
-\subsection{Model layers}
-Layers shown with parameter counts. Only showing the 1st layer for sample purposes. RoBERTa has 11 repeating layers.
-\subsubsection{RoBERTa }
-\label{sec:robertamodel} 
-\textbf{Repeating layers}
 
-roberta.embeddings.LayerNorm.bias: 768
-
-roberta.encoder.layer.0.attention.self.query.weight: 589824
-
-roberta.encoder.layer.0.attention.self.query.bias: 768
-
-roberta.encoder.layer.0.attention.self.key.weight: 589824
-
-roberta.encoder.layer.0.attention.self.key.bias: 768
-
-roberta.encoder.layer.0.attention.self.value.weight: 589824
-
-roberta.encoder.layer.0.attention.self.value.bias: 768
-
-roberta.encoder.layer.0.attention.output.dense.weight: 589824
-
-roberta.encoder.layer.0.attention.output.dense.bias: 768
-
-roberta.encoder.layer.0.attention.output.LayerNorm.weight: 768
-
-roberta.encoder.layer.0.attention.output.LayerNorm.bias: 768
-
-roberta.encoder.layer.0.intermediate.dense.weight: 2359296
-
-roberta.encoder.layer.0.intermediate.dense.bias: 3072
-
-roberta.encoder.layer.0.output.dense.weight: 2359296
-
-roberta.encoder.layer.0.output.dense.bias: 768
-
-roberta.encoder.layer.0.output.LayerNorm.weight: 768
-
-roberta.encoder.layer.0.output.LayerNorm.bias: 768
-
-roberta.encoder.layer.1.attention.self.query.weight: 589824
-
-
-\textbf{Final Layer}
-
-roberta.encoder.layer.11.output.LayerNorm.bias: 768
-
-classifier.dense.weight: 589824
-
-classifier.dense.bias: 768
-
-classifier.out\_proj.weight: 4608
-
-classifier.out\_proj.bias: 6
-
-\subsubsection{Pfeiffer Adapter}
-\label{sec:pfeiffermodel} 
-\textbf{Repeating layers}
-
-roberta.embeddings.LayerNorm.bias: 768
-
-roberta.encoder.layer.0.attention.self.query.weight: 589824
-
-roberta.encoder.layer.0.attention.self.query.bias: 768
-
-roberta.encoder.layer.0.attention.self.key.weight: 589824
-
-roberta.encoder.layer.0.attention.self.key.bias: 768
-
-roberta.encoder.layer.0.attention.self.value.weight: 589824
-
-roberta.encoder.layer.0.attention.self.value.bias: 768
-
-roberta.encoder.layer.0.attention.output.dense.weight: 589824
-
-roberta.encoder.layer.0.attention.output.dense.bias: 768
-
-roberta.encoder.layer.0.attention.output.LayerNorm.weight: 768
-
-roberta.encoder.layer.0.attention.output.LayerNorm.bias: 768
-
-roberta.encoder.layer.0.intermediate.dense.weight: 2359296
-
-roberta.encoder.layer.0.intermediate.dense.bias: 3072
-
-roberta.encoder.layer.0.output.dense.weight: 2359296
-
-roberta.encoder.layer.0.output.dense.bias: 768
-
-roberta.encoder.layer.0.output.LayerNorm.weight: 768
-
-roberta.encoder.layer.0.output.LayerNorm.bias: 768
-
-\textbf{roberta.encoder.layer.0.output.adapters.base\_citation\_intent.adapter\_down.0.weight: 36864}
-
-\textbf{roberta.encoder.layer.0.output.adapters.base\_citation\_intent.adapter\_down.0.bias: 48}
-
-\textbf{roberta.encoder.layer.0.output.adapters.base\_citation\_intent.adapter\_up.weight: 36864}
-
-\textbf{roberta.encoder.layer.0.output.adapters.base\_citation\_intent.adapter\_up.bias: 768}
-
-roberta.encoder.layer.1.attention.self.query.weight: 589824
-
-\textbf{Final Layer}
-
-roberta.encoder.layer.11.output.adapters.base\_citation\_intent.adapter\_up.bias: 768
-
-roberta.pooler.dense.weight: 589824
-
-roberta.pooler.dense.bias: 768
-
-\textbf{heads.default.0.weight: 589824}
-
-\textbf{heads.default.0.bias: 768}
-
-\textbf{heads.default.2.weight: 768}
-
-\textbf{heads.default.2.bias: 768}
-
-\textbf{heads.default.3.bias: 50265}
-
-\textbf{heads.base\_citation\_intent.1.weight: 589824}
-
-\textbf{heads.base\_citation\_intent.1.bias: 768}
-
-\textbf{heads.base\_citation\_intent.4.weight: 4608}
-
-\textbf{heads.base\_citation\_intent.4.bias: 6}
-
-\subsubsection{Houlsby Adapter}
-\label{sec:houlsbymodel} 
-
-\textbf{Repeating layers}
-
-roberta.embeddings.LayerNorm.bias: 768
-
-roberta.encoder.layer.0.attention.self.query.weight: 589824
-
-roberta.encoder.layer.0.attention.self.query.bias: 768
-
-roberta.encoder.layer.0.attention.self.key.weight: 589824
-
-roberta.encoder.layer.0.attention.self.key.bias: 768
-
-roberta.encoder.layer.0.attention.self.value.weight: 589824
-
-roberta.encoder.layer.0.attention.self.value.bias: 768
-
-roberta.encoder.layer.0.attention.output.dense.weight: 589824
-
-roberta.encoder.layer.0.attention.output.dense.bias: 768
-
-roberta.encoder.layer.0.attention.output.LayerNorm.weight: 768
-
-roberta.encoder.layer.0.attention.output.LayerNorm.bias: 768
-
-\textbf{roberta.encoder.layer.0.attention.output.adapters.base\_citation\_intent.adapter\_down.0.weight: 36864}
-
-\textbf{roberta.encoder.layer.0.attention.output.adapters.base\_citation\_intent.adapter\_down.0.bias: 48}
-
-\textbf{roberta.encoder.layer.0.attention.output.adapters.base\_citation\_intent.adapter\_up.weight: 36864}
-
-\textbf{roberta.encoder.layer.0.attention.output.adapters.base\_citation\_intent.adapter\_up.bias: 768}
-
-roberta.encoder.layer.0.intermediate.dense.weight: 2359296
-
-roberta.encoder.layer.0.intermediate.dense.bias: 3072
-
-roberta.encoder.layer.0.output.dense.weight: 2359296
-
-roberta.encoder.layer.0.output.dense.bias: 768
-
-roberta.encoder.layer.0.output.LayerNorm.weight: 768
-
-roberta.encoder.layer.0.output.LayerNorm.bias: 768
-
-\textbf{roberta.encoder.layer.0.output.adapters.base\_citation\_intent.adapter\_down.0.weight: 36864}
-
-\textbf{roberta.encoder.layer.0.output.adapters.base\_citation\_intent.adapter\_down.0.bias: 48}
-
-\textbf{roberta.encoder.layer.0.output.adapters.base\_citation\_intent.adapter\_up.weight: 36864}
-
-\textbf{roberta.encoder.layer.0.output.adapters.base\_citation\_intent.adapter\_up.bias: 768}
-
-roberta.encoder.layer.1.attention.self.query.weight: 589824
-
-\textbf{Final Layer}
-
-roberta.encoder.layer.11.output.adapters.base\_citation\_intent.adapter\_up.bias: 768
-
-roberta.pooler.dense.weight: 589824
-
-roberta.pooler.dense.bias: 768
-
-\textbf{heads.default.0.weight: 589824}
-
-\textbf{heads.default.0.bias: 768}
-
-\textbf{heads.default.2.weight: 768}
-
-\textbf{heads.default.2.bias: 768}
-
-\textbf{heads.default.3.bias: 50265}
-
-\textbf{heads.base\_citation\_intent.1.weight: 589824}
-
-\textbf{heads.base\_citation\_intent.1.bias: 768}
-
-\textbf{heads.base\_citation\_intent.4.weight: 4608}
-
-\textbf{heads.base\_citation\_intent.4.bias: 6}
-
-\subsection{Models}
+\subsection{HuggingFace Base Models Used}
 The list below shows the pre-trained models used for the two tasks.
 
-task\_models = \{
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|l|l|l|l|}
+    \hline
+    \textbf{Task} & \textbf{Base Model} & \textbf{DAPT Model} & \textbf{TAPT Model} \\
+    \hline
+    citation\_intent & roberta-base & allenai/cs\_roberta\_base & allenai/dsp\_roberta\_base\_tapt\_citation\_intent\_1688 \\
+    sciie & roberta-base & allenai/cs\_roberta\_base & allenai/dsp\_roberta\_base\_tapt\_sciie\_3219 \\
+    chemprot & roberta-base & allenai/biomed\_roberta\_base & allenai/dsp\_roberta\_base\_tapt\_chemprot\_4169 \\
+    \hline
+    \end{tabular}
+    \caption{Pre-trained Models Used for Different Tasks}
+    \label{tab:base_models}
+    \end{table}
 
-    \textbf{"citation\_intent"}: \{
-    
-        "base": "roberta-base",
-        
-        "dapt": "allenai/cs\_roberta\_base",
-        
-        "tapt":         "allenai/dsp\_roberta\_base\_tapt\_citation\_intent\_1688",
-        
-        "dapt\_tapt": allenai/dsp\_roberta\_base\_dapt\_cs\_tapt\_citation\_intent\_1688"
-        
-    \},
 
-    \textbf{"sciie"}: \{
-    
-        "base": "roberta-base",
-        
-        "dapt": "allenai/cs\_roberta\_base",
-        
-        "tapt": "allenai/dsp\_roberta\_base\_tapt\_sciie\_3219",
-        "dapt\_tapt": 
-        "allenai/dsp\_roberta\_base\_dapt\_cs\_tapt\_sciie\_3219"
-        
-    \}
-    
-\textbf{"chemprot"}: \{
+\FloatBarrier
 
-        "base": "roberta-base",
-        
-        "dapt": " allenai/biomed\_roberta\_base ",
-        
-        "tapt": " allenai/dsp\_roberta\_base\_tapt\_chemprot\_4169",
-        "dapt\_tapt": " 
-        allenai/dsp\_roberta\_base\_dapt\_biomed\_tapt\_chemprot\_4169"
-        
-    \}
+\newpage{}
+\subsection{Adapters vs Full FineTuning}
+\begin{table}[h]
+\centering
+
+\begin{tabular}{llrrrrr}
+\hline
+\textbf{Dataset} & \textbf{Model} & \textbf{Fine-Tuning} & \textbf{Pfeiffer} & \textbf{Houlsby} & \textbf{Pfeiffer vs FT} & \textbf{Houlsby vs FT} \\
+\hline
+ACL-ARC & RoBERTA Base & 66.34 & 67.12 & 65.53 & 1.18\% & -1.22\% \\
+& TAPT & 69.49 & 67.22 & 65.12 & -3.27\% & -6.29\% \\
+& DAPT & 74.65 & 73.32 & 74.03 & -1.78\% & -0.83\% \\
+& DAPT\_TAPT & 74.89 & 73.20 & 72.24 & -2.26\% & -3.54\% \\
+\hline
+SCIERC & RoBERTA Base & 80.02 & 81.60 & 81.32 & 1.97\% & 1.62\% \\
+& TAPT & 80.95 & 80.80 & 80.92 & -0.19\% & -0.04\% \\
+& DAPT & 83.08 & 82.48 & 82.55 & -0.72\% & -0.64\% \\
+& DAPT\_TAPT & 81.55 & 81.47 & 88.81 & -0.10\% & 8.90\% \\
+\hline
+CHEMPROT & RoBERTA Base & 80.69 & 80.38 & 80.95 & -0.38\% & 0.32\% \\
+& TAPT & 79.88 & 80.80 & 80.67 & 1.15\% & 0.99\% \\
+& DAPT & 81.72 & 81.85 & 82.16 & 0.16\% & 0.54\% \\
+& DAPT\_TAPT & 81.71 & 81.67 & 82.29 & -0.05\% & 0.71\% \\
+\hline
+\multicolumn{2}{l}{\textbf{Average}} & 77.91 & 77.66 & 78.05 & \textbf{-0.33\%} & \textbf{0.17\%} \\
+\hline
+\end{tabular}
+\caption{Test accuracy for classification tasks across different pre-trained models. For each task and pre-trained model, the model with the best validation set accuracy is chosen. We report the mean test accuracy and s.e.m. across runs with
+different random seeds.}
+\label{table:adaptersvsft}
+\end{table}
+\FloatBarrier
+
+
+
+
+\newpage{}
+\subsection{Training Environment and Hyper-Parameter Optimization}
+\label{sec:besthyperparameters}
+
+\begin{table}[H]
+
+    \begin{minipage}[t]{0.45\textwidth}
+    \centering
+    \caption{Fine-Tuning Hyperparameters}
+    \begin{tabular}{|l|l|}
+    \hline
+    \textbf{Hyperparameter} & \textbf{Value} \\
+    \hline
+    Number of Training Epochs & 10 \\
+    Per-Device Training Batch Size & 16 \\
+    Per-Device Evaluation Batch Size & 8 \\
+    Learning Rate & $2 \times 10^{-5}$ \\
+    Dropout & 0.1 \\
+    \hline
+    \end{tabular}
+    \label{table:fine_tuning_hyperparameters}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[t]{0.45\textwidth}
+    \centering
+    \caption{Optuna Search Space}
+    \begin{tabular}{|l|p{5cm}|}
+    \hline
+    \textbf{Parameter} & \textbf{Search Space} \\
+    \hline
+    Learning Rate & Loguniform distribution between $1 \times 10^{-5}$ and $1 \times 10^{-3}$ \\
+    Batch Size & Discrete values: 16, 32, 64, 128 \\
+    Number of Training Epochs & Uniform distribution between 5 and 15 (inclusive integers) \\
+    \hline
+    \end{tabular}
+    \label{table:optuna_search_space}
+    \end{minipage}
     
+    \end{table}
+
+
+
+\begin{table}[H]
+
+    \centering
+    \caption{Best Hyperparameters for Adapter Training Across Different Tasks}
+    \begin{tabular}{@{}lcccc@{}}
+    \hline
+    \textbf{Study} & \textbf{Adapter} & \textbf{Learning Rate} & \textbf{Batch Size} & \textbf{Epochs} \\
+    \hline
+    \multicolumn{1}{c}{\textbf{ACL-ARC}} \\
+    ROBERTA & Pfeiffer & 0.000793 & 16 & 15 \\
+    ROBERTA & Houlsby & 0.000477 & 32 & 12 \\
+    TAPT & Pfeiffer & 0.000983 & 32 & 11 \\
+    TAPT & Houlsby & 0.000472 & 32 & 11 \\
+    DAPT & Pfeiffer & 0.000581 & 32 & 14 \\
+    DAPT & Houlsby & 0.000914 & 32 & 9 \\
+    DAPT\_TAPT & Pfeiffer & 0.000332 & 16 & 14 \\
+    DAPT\_TAPT & Houlsby & 0.000310 & 16 & 9 \\
+    \hline
+    \multicolumn{1}{c}{\textbf{SCIERC}} \\
+    SCIERC
+    ROBERTA & Pfeiffer & 0.000586 & 32 & 13 \\
+    ROBERTA & Houlsby & 0.000953 & 32 & 9 \\
+    TAPT & Pfeiffer & 0.000696 & 64 & 15 \\
+    TAPT & Houlsby & 0.000628 & 16 & 13 \\
+    DAPT & Pfeiffer & 0.000393 & 32 & 15 \\
+    DAPT & Houlsby & 0.000973 & 16 & 13 \\
+    DAPT\_TAPT & Pfeiffer & 0.000870 & 64 & 14 \\
+    DAPT\_TAPT & Houlsby & 0.000994 & 16 & 13 \\
+    \hline
+    \multicolumn{1}{c}{\textbf{CHEMPROT}} \\
+    ROBERTA & Pfeiffer & 0.000224 & 16 & 12 \\
+    ROBERTA & Houlsby & 0.000588 & 16 & 11 \\
+    TAPT & Pfeiffer & 0.000365 & 32 & 7 \\
+    TAPT & Houlsby & 0.000346 & 16 & 9 \\
+    DAPT & Pfeiffer & 0.000224 & 16 & 8 \\
+    DAPT & Houlsby & 0.000396 & 16 & 5 \\
+    DAPT\_TAPT & Pfeiffer & 0.000780 & 16 & 12 \\
+    DAPT\_TAPT & Houlsby & 0.000857 & 16 & 9 \\
+    \hline
+    \end{tabular}
+    \label{table:best_hyperparameters_adapters}
+\end{table}
+
+\FloatBarrier
+
+\newpage{}
+\subsection{Model layers}
+\label{sec:model_layers}
+Layers shown with parameter counts. Only showing the 1st layer for sample purposes. RoBERTa has 11 repeating layers.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Description of Layers in Different Models}
+    \begin{tabular}{|l|c|c|c|}
+        \hline
+        \textbf{Layer Description} & \textbf{RoBERTa Model} & \textbf{Pfeiffer Adapter} & \textbf{Houlsby Adapter} \\
+        \hline
+        roberta.embeddings.LayerNorm.bias & 768 & 768 & 768 \\
+        roberta.encoder.layer.0.attention.self.query.weight & 589824 & 589824 & 589824 \\
+        roberta.encoder.layer.0.attention.self.query.bias & 768 & 768 & 768 \\
+        roberta.encoder.layer.0.attention.self.key.weight & 589824 & 589824 & 589824 \\
+        roberta.encoder.layer.0.attention.self.key.bias & 768 & 768 & 768 \\
+        roberta.encoder.layer.0.attention.self.value.weight & 589824 & 589824 & 589824 \\
+        roberta.encoder.layer.0.attention.self.value.bias & 768 & 768 & 768 \\
+        roberta.encoder.layer.0.attention.output.dense.weight & 589824 & 589824 & 589824 \\
+        roberta.encoder.layer.0.attention.output.dense.bias & 768 & 768 & 768 \\
+        roberta.encoder.layer.0.attention.output.LayerNorm.weight & 768 & 768 & 768 \\
+        roberta.encoder.layer.0.attention.output.LayerNorm.bias & 768 & 768 & 768 \\
+        \textbf{roberta.encoder.layer.0.output.adapters.adapter\_down.0.weight*} & - & - & 36864 \\
+        \textbf{roberta.encoder.layer.0.output.adapters.adapter\_down.0.bias*} & - & - & 48 \\
+        \textbf{roberta.encoder.layer.0.output.adapters.adapter\_up.weight*} & - & - & 36864 \\
+        \textbf{roberta.encoder.layer.0.output.adapters.adapter\_up.bias*} & - & - & 768\\
+        roberta.encoder.layer.0.intermediate.dense.weight & 2359296 & 2359296 & 2359296 \\
+        roberta.encoder.layer.0.intermediate.dense.bias & 3072 & 3072 & 3072 \\
+        roberta.encoder.layer.0.output.dense.weight & 2359296 & 2359296 & 2359296 \\
+        roberta.encoder.layer.0.output.dense.bias & 768 & 768 & 768 \\
+        roberta.encoder.layer.0.output.LayerNorm.weight & 768 & 768 & 768 \\
+        roberta.encoder.layer.0.output.LayerNorm.bias & 768 & 768 & 768 \\
+        \textbf{roberta.encoder.layer.0.output.adapters.adapter\_down.0.weight*} & - & 36864 & 36864 \\
+        \textbf{roberta.encoder.layer.0.output.adapters.adapter\_down.0.bias*} & - & 48 & 48 \\
+        \textbf{roberta.encoder.layer.0.output.adapters.adapter\_up.weight*} & - & 36864 & 36864 \\
+        \textbf{roberta.encoder.layer.0.output.adapters.adapter\_up.bias*} & - & 768 & 768\\
+        roberta.encoder.layer.1.attention.self.query.weight & 589824 & 589824 & 589824 \\
+        \textbf{Final Layer} & & & \\
+        roberta.encoder.layer.11.output.LayerNorm.bias & 768 & - & - \\
+        roberta.encoder.layer.11.output.adapters.base\_citation\_intent.* & - & 768 & 768 \\
+        classifier.dense.weight & 589824 & - & - \\
+        classifier.dense.bias & 768 & - & - \\
+        classifier.out\_proj.weight & 4608 & - & - \\
+        classifier.out\_proj.bias & 6 & - & - \\
+        roberta.pooler.dense.weight & - & 589824 & 589824 \\
+        roberta.pooler.dense.bias & - & 768 & 768 \\
+        \textbf{}heads.default.0.weight & - & 589824 & 589824 \\
+        heads.default.0.bias & - & 768 & 768 \\
+        heads.default.2.weight & - & 768 & 768 \\
+        heads.default.2.bias & - & 768 & 768 \\
+        heads.default.3.bias & - & 50265 & 50265 \\
+        heads.base\_citation\_intent.1.weight & - & 589824 & 589824 \\
+        heads.base\_citation\_intent.1.bias & - & 768 & 768 \\
+        heads.base\_citation\_intent.4.weight & - & 4608 & 4608 \\
+        heads.base\_citation\_intent.4.bias & - & 6 & 6 \\
+        \hline
+    \end{tabular}
+    \label{table:model_layers_table}
+\end{table}
+
+
+
 
 
 \section{Source Code}
 Source code can be found at the following link:
 \href{https://github.gatech.edu/avizcaino3/CS-7643-EfficiencyLane.git}{https://github.gatech.edu/avizcaino3/CS-7643-EfficiencyLane.git}
 
-% {\small
-% \bibliographystyle{ieeetr}
-% \bibliography{references}
-% }
+{\small
+\bibliographystyle{ieeetr}
+\bibliography{references}
+}
 
 \end{document}
