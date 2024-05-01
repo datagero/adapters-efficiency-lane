@@ -1,31 +1,45 @@
-\begin{thebibliography}{1}
-
-\bibitem{gururangan2020dont}
-S.~e.~a. Gururangan, ``Don’t stop pretraining: Adapt language models to domains and tasks,'' in {\em ACL}, 2020.
-
-\bibitem{mccloskey1989catastrophic}
-M.~Mccloskey and N.~J. Cohen, ``Catastrophic interference in connectionist networks: The sequential learning problem,'' {\em Psychology of Learning and Motivation}, 1989.
-
-\bibitem{houlsby2019parameter}
-N.~e.~a. Houlsby, ``Parameter-efficient transfer learning for nlp,'' in {\em ICML}, 2019.
-
-\bibitem{liu2019roberta}
-Y.~e.~a. Liu, ``Roberta: A robustly optimized bert pretraining approach,'' {\em ArXiv}, 2019.
-
-\bibitem{allenai_dont_stop_pretraining}
-``allenai/dont-stop-pretraining: Code associated with the don’t stop pretraining acl 2020 paper.'' \url{https://github.com/allenai/dont-stop-pretraining}.
-
-\bibitem{transformers}
-``Transformers library by hugging face.'' GitHub repository.
-\newblock \url{https://huggingface.co/docs/transformers/en/index}.
+\begin{thebibliography}{}\itemsep=-1pt
 
 \bibitem{adapterhub_overview}
-``Overview and configuration — adapterhub documentation.'' \url{https://docs.adapterhub.ml/overview.html}.
+Adatperhub: Overview and configuration.
+\newblock \url{https://docs.adapterhub.ml/overview.html}.
 
-\bibitem{pfeiffer2020adapterhub}
-J.~e.~a. Pfeiffer, ``Adapterhub: A framework for adapting transformers,'' {\em ArXiv}, 2020.
+\bibitem{allenai_dont_stop_pretraining}
+Code associated with the don’t stop pretraining acl 2020 paper.
+\newblock \url{https://github.com/allenai/dont-stop-pretraining}.
 
 \bibitem{optuna}
-``Optuna hyperparameter optimization framework · github.'' \url{https://github.com/optuna/optuna}.
+Optuna: An open source hyperparameter optimization framework to automate hyperparameter search.
+\newblock \url{https://optuna.org/}.
+
+\bibitem{transformers}
+Transformers library by hugging face.
+\newblock GitHub repository.
+\newblock \url{https://huggingface.co/docs/transformers/en/index}.
+
+\bibitem{gururangan2020dont}
+Suchin Gururangan, Ana Marasovic, Swabha Swayamdipta, Kyle Lo, Iz Beltagy, Doug Downey, and Noah~A. Smith.
+\newblock Don’t stop pretraining: Adapt language models to domains and tasks.
+\newblock In {\em ACL}, 2020.
+
+\bibitem{houlsby2019parameter}
+Neil Houlsby, Andrei Giurgiu, Stanislaw Jastrzebski, Bruna Morrone, Quentin de Laroussilhe, Andrea Gesmundo, Mona Attariyan, and Sylvain Gelly.
+\newblock Parameter-efficient transfer learning for nlp.
+\newblock In {\em ICML}, 2019.
+
+\bibitem{liu2019roberta}
+Yinhan Liu, Myle Ott, Naman Goyal, Jingfei Du, Mandar Joshi, Danqi Chen, Omer Levy, Mike Lewis, Luke Zettlemoyer, and Veselin Stoyanov.
+\newblock Roberta: A robustly optimized bert pretraining approach.
+\newblock {\em ArXiv}, 2019.
+
+\bibitem{mccloskey1989catastrophic}
+Michael McCloskey and Neal~J. Cohen.
+\newblock Catastrophic interference in connectionist networks: The sequential learning problem.
+\newblock {\em Psychology of Learning and Motivation}, 1989.
+
+\bibitem{pfeiffer2020adapterhub}
+Jonas Pfeiffer, Andreas Rücklé, Clifton Poth, Aishwarya Kamath, Ivan Vulić, Sebastian Ruder, Kyunghyun Cho, and Iryna Gurevych.
+\newblock Adapterhub: A framework for adapting transformers.
+\newblock {\em ArXiv}, 2020.
 
 \end{thebibliography}
