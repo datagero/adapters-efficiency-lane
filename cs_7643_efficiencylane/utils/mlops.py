@@ -1,3 +1,9 @@
+"""
+Supports operations related to managing and executing ML training with the transformers package and Optuna hyperparameter search framework.
+It includes functions to check for the existence of Optuna studies, create or load studies, handle retries, map hyperparameters to model argument names, suggest parameter values,
+build output directories, and construct training arguments for trials.
+"""
+
 from env.logger_config import get_logger
 logger = get_logger()
 
@@ -5,7 +11,13 @@ import time
 import optuna
 from retry import retry
 
-def check_study_exists(storage, study_name):
+def check_study_exists(study_name, storage="sqlite:///db.sqlite3"):
+    """
+    Checks if an Optuna study exists in the provided storage.
+
+    Returns:
+    - bool: True if the study exists, False otherwise.
+    """
     return study_name in optuna.study.get_all_study_names(storage)
 
 @retry(KeyError, delay=3, tries=2)
@@ -18,6 +30,7 @@ def load_study_with_retry(study_name, storage):
 def create_or_load_study(study_name, storage, direction='minimize'):
     """
     Create a new Optuna study or load an existing one from storage.
+    Make sure that the optimization direction matches the metric being optimized, as per your complete optuna configuration.
     """
     # try:
     #     # Try loading the study
@@ -34,6 +47,8 @@ def create_or_load_study(study_name, storage, direction='minimize'):
 def map_param_to_arg_names(param_name):
     """
     Map a hyperparameter name to one or more TrainingArguments fields.
+    This is mostly for cases where the hyperparameter values are searched over by Optuna, 
+    and we need the same value for multiple arguments (e.g., train/eval batch size).
     """
     # Mapping from parameter names to TrainingArguments fields
     mapping = {
@@ -45,6 +60,8 @@ def map_param_to_arg_names(param_name):
 def build_study_output_dir(base_output_dir, study_name, trial_number, seed):
     """
     Build the output directory for a given Optuna study using the provided configuration.
+    Note, seed may be None from upstream processess, in which case we only run one seed per optuna trial.
+    Otherwise, an Optuna trial is conformed from multiple seeds, which results should get averaged out by downstream processes.
     """
     if seed:
         return f"{base_output_dir}/{study_name}/trial_{trial_number}/seed_{seed}/"
@@ -54,6 +71,9 @@ def build_study_output_dir(base_output_dir, study_name, trial_number, seed):
 def get_optuna_suggested_params(optuna_search_space, trial):
     """
     Get suggested hyperparameter values for a given Optuna trial using the provided configuration.
+
+    Returns:
+    - dict: Dictionary of suggested hyperparameters mapped to their respective argument names.
     """
     # Dictionary to hold suggested hyperparameter values
     suggested_params = {}
@@ -89,16 +109,18 @@ def get_optuna_suggested_params(optuna_search_space, trial):
             suggested_params[arg_name] = suggested_value
 
     logger.info(f"Suggested hyperparameters for trial {trial.number}:\n{suggested_params}")
-
     return suggested_params
 
 def build_training_arguments_for_trial(trial, cfg, seed=None):
     """
     Build arguments for a TrainingArguments for a given Optuna trial using the provided configuration.
+    In specific, this function suggests hyperparameter values for the trial and initializes the training arguments.
+    Also, build the output directory for the trial using the study name, trial number, and seed.
     """
     if 'optuna_search_space' in cfg:
         suggested_params = get_optuna_suggested_params(cfg.optuna_search_space, trial)
     else:
+        # No need to suggest parameters if no search space is defined
         suggested_params = {}
 
     # Initialize training arguments using both predefined and suggested parameters
@@ -111,20 +133,5 @@ def build_training_arguments_for_trial(trial, cfg, seed=None):
     if seed:
         training_kwargs['seed'] = seed
 
-    # Pretty print training_kwargs
-    # print(f"Training arguments for trial {trial.number} with seed {seed}:\n{training_kwargs}")
-
-    # Create and return arguments for TrainingArguments
+    # arguments for TrainingArguments
     return training_kwargs
-
-# Check final size of the adapter
-# !ls -lh final_adapter
-
-# Share Adapter to adapter hub
-# model.push_adapter_to_hub(
-#     "my-awesome-adapter",
-#     "rotten_tomatoes",
-#     adapterhub_tag="sentiment/rotten_tomatoes",
-#     datasets_tag="rotten_tomatoes"
-# )
-

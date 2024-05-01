@@ -1,3 +1,7 @@
+"""
+Defines custom metrics for training and evaluation of transformers.
+"""
+
 import numpy as np
 from transformers import EvalPrediction
 from sklearn.metrics import f1_score

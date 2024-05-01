@@ -13,9 +13,11 @@ Efficiency Lane is a repository that houses task-specific adapters for RoBERTa, 
 ### Code and Processing
 - **CS 7643 Efficiency Lane (`./cs_7643_efficiencylane/`)**:
   - **demo/**: Showcases the project capabilities through various demonstrations.
-  - **utils/**: Contains utilities for data handling and other support functions.
+    - Refer to [Link to CS 7643 EfficiencyLane Demo](cs_7643_efficiencylane/demo/README.md) for more detailed instructions on how to train our models and adapters.
+  - **utils/**: Contains utilities for mlops to handle our [Optuna](https://github.com/optuna/optuna) trials, data handling and other support functions.
   - **data_loaders/**: Responsible for loading and preprocessing data.
-  - **training_configs/**: Holds configuration files for training setups.
+  - **training_configs/**: Holds [Hydra](https://github.com/facebookresearch/hydra) configuration files for training setups.
+  - **visualizations**: Custom utility functions made on-the-go for project demands for our analytics layer on model outputs (both for transformers library's mlflow logs, and optuna studies). This is used to produce analysis and plots for our final report.
 
 ### Inputs
 - **Data (`./data/`)**:
@@ -24,7 +26,7 @@ Efficiency Lane is a repository that houses task-specific adapters for RoBERTa, 
 #### Downloading Datasets
 Execute the following command to download all datasets:
 ```bash
-python download_datasets.py
+python cs_7643_efficiencylane/utils/download_datasets.py
 ```
 - **Note**: This process may take several minutes. Modify `datasets.py` to customize which datasets are downloaded. The Amazon reviews dataset, in particular, requires more time due to its size.
 
@@ -39,7 +41,6 @@ python download_datasets.py
   - Contains logs and outputs from Optuna training sessions.
 
 
-
 ---
 
 # Demo Descriptions
@@ -49,13 +50,18 @@ python download_datasets.py
 These are stored in the `cs_7643_efficiencylane/demo/finetuning` folder. This demo illustrates how to replicate the results of continued pretraining using RoBERTa models. It leverages various utilities and data loaders developed as part of the project.
 
 ### Components
-- **Data Loader**: Loads the `citation_intent` dataset using the `CSTasksDataLoader`.
+- **Data Loader**: Loads the `citation_intent` dataset using the `TaskDataLoader`.
 - **Configuration**: Utilizes a `RobertaConfig` with specified dropout probabilities and label count based on the dataset.
 - **Model Training**: Executes training using different pretrained model variants such as `allenai/dsp_roberta_base_tapt_citation_intent_1688` to compare performance impacts.
 - **Evaluation**: Computes the Macro-F1 score as the primary evaluation metric, highlighting the model's classification performance.
 
 ### Execution
 To run this demo, set up the environment with necessary libraries, execute the training, and evaluate the model. Configuration details are fetched from YAML files, ensuring that the setup can be easily replicated or adjusted.
+
+You can run commands such as the below to fine-tune pre-trained models (e.g., roberta-base):
+  ```bash
+  python cs_7643_efficiencylane/demo/finetuning/finetuning.py roberta-base --dataset_name citation_intent --config_name config_finetuning --parallelism 1 --overwrite 1 --job_sequence 1
+  ```
 
 ## 2. Training New Adapters
 
@@ -69,11 +75,14 @@ These are stored in the `cs_7643_efficiencylane/demo/adapters` folder. We train 
 ### Execution
 To execute this demo, ensure the model, adapter, and training configurations are correctly set up. The training process is managed by the `AdapterTrainer`, which focuses solely on adapting the newly added components. After training, the adapter can be saved locally or pushed to the Adapter-Hub for broader accessibility.
 
+Similar to finetuning, you can run commands such as the below to train adapters.
+    ```bash
+    python cs_7643_efficiencylane/demo/adapters/training_adapters.py roberta-base --dataset_name citation_intent --adapter_config_name seq_bn --study_suffix adapter_fusion_test --config_path ../../training_configs --config_name roberta-base --parallelism 0 --overwrite 1 --job_sequence 1
+    ```
+
 
 ## 3. Logs and Visualisation
 Web version of optuna dashboard is more complete than VSCode version:
 optuna-dashboard sqlite:///db.sqlite3
 
-To delete experiments from optuna:
-sqlite3 db.sqlite3
-sqlite> DELETE FROM studies WHERE study_name LIKE 'cs_roberta_base_training_default%';
+We publish our code for analytics layer, but this is for reference only; do not expect it to be maintained or work for your use-case.

@@ -3,14 +3,16 @@ logger = get_logger()
 
 import argparse
 import os
-from hydra import initialize, compose
 
-# Our built utilities
+from hydra import initialize, compose
 from utils import optuna_objectives
 
 def delete_folder_and_optuna_study(delete_candidate):
+    """
+    This function helps to keep Optuna's backend and our training_output logs consistent and up to date, 
+    so our analytics blocks can work as expected and produce coherent analysis
+    """
     # Candidate in the form of: roberta-base_sciie_seq_bn_training_adapter_v01
-
     from utils import mlops
     import optuna
     trainer_output_path="training_output"
@@ -21,7 +23,7 @@ def delete_folder_and_optuna_study(delete_candidate):
     # Delete from optuna
     from utils import mlops
     storage = "sqlite:///db.sqlite3"
-    study_exists = mlops.check_study_exists(storage, delete_candidate)
+    study_exists = mlops.check_study_exists(delete_candidate, storage)
     if study_exists:
         logger.info(f"Deleting {delete_candidate} from storage.")
         optuna.study.delete_study(delete_candidate, storage)
@@ -30,24 +32,25 @@ def delete_folder_and_optuna_study(delete_candidate):
 
 
 if __name__ == "__main__":
-
     """
-    Run different pre-trained models by changing the model_variant variable.
+    Run for different adapters and pre-trained models by changing the parameters.
     We will then build an adapter with the task-specific dataset.
-    e.g. 
+    e.g. for supported pre-trained models:
         roberta-base is the base pre-trained model.
-        allenai/cs_roberta_base is the base pre-trained model.
-        ./mlm_model is our pre-trained with tapt data.
-        allenai/dsp_roberta_base_tapt_citation_intent_1688 is the published (2020) pre-trained with tapt data.
+        allenai/cs_roberta_base is the base pre-trained model for CS domain (DAPT).
+        allenai/dsp_roberta_base_tapt_citation_intent_1688 is the published (2020) pre-trained with TAPT data.
         allenai/dsp_roberta_base_dapt_cs_tapt_citation_intent_1688 is the published (2020) pre-trained with dapt and then with tapt data.
+        allenai/biomed_roberta_base is the base pre-trained model for BIOMED domain (DAPT).
+        allenai/dsp_roberta_base_tapt_chemprot_4169 is the published (2020) pre-trained with TAPT data.
+        allenai/dsp_roberta_base_dapt_biomed_tapt_chemprot_4169 is the published (2020) pre-trained with dapt and then with tapt data.
     """
     parser = argparse.ArgumentParser(description='Training Classifier Head for pre-trained model.')
     parser.add_argument('model_variant', type=str, help='the model variant to use (e.g: roberta-base)')
     parser.add_argument('--dataset_name', type=str, default='citation_intent', help='the name of the dataset')
     parser.add_argument('--adapter_config_name', type=str, default='seq_bn', help='the name of the adapter configuration file')
-    parser.add_argument('--study_suffix', type=str, default='adapter_fusion_test', help='the suffix to add to the study name')
+    parser.add_argument('--study_suffix', type=str, default='default_test', help='the suffix to add to the study name, this also corresponds to the folder name in the training_configs directory')
     parser.add_argument('--config_path', type=str, default='../../training_configs', help='the path to training configuration files')
-    parser.add_argument('--config_name', type=str, default='roberta-base', help='the name of the configuration file')
+    parser.add_argument('--config_name', type=str, default='adapter_default_test', help='the name of the configuration file')
     parser.add_argument('--parallelism', type=str, default="0", help='')
     parser.add_argument('--overwrite', type=str, default="0", help='')
     parser.add_argument('--job_sequence', type=int, default=1, help='the number of job for parallel runs (default: 1)')

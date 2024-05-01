@@ -1511,7 +1511,7 @@ class TrainerOutputProcessor(TrainerUtilities):
         # Delete from optuna
         from utils import mlops
         storage = "sqlite:///db.sqlite3"
-        study_exists = mlops.check_study_exists(storage, delete_candidate)
+        study_exists = mlops.check_study_exists(delete_candidate, storage)
         if study_exists:
             print(f"Deleting {delete_candidate} from storage.")
             optuna.study.delete_study(delete_candidate, self.storage)
