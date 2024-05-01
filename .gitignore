@@ -2,14 +2,12 @@ local/
 legacy/
 training_output/
 resources/
-# training_output/*v03
-final_adapter/
 archive/
 data/
 mlruns/
 results/
 mlm_model/
-# adapters/
+adapters/
 .hydra/
 
 __pycache__/
