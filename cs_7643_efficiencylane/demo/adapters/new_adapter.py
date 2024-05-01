@@ -33,7 +33,7 @@ if __name__ == "__main__":
 
     """
     Run different pre-trained models by changing the model_variant variable.
-    We will then build a classification head for the model.
+    We will then build an adapter with the task-specific dataset.
     e.g. 
         roberta-base is the base pre-trained model.
         allenai/cs_roberta_base is the base pre-trained model.
@@ -42,16 +42,16 @@ if __name__ == "__main__":
         allenai/dsp_roberta_base_dapt_cs_tapt_citation_intent_1688 is the published (2020) pre-trained with dapt and then with tapt data.
     """
     parser = argparse.ArgumentParser(description='Training Classifier Head for pre-trained model.')
-    parser.add_argument('model_variant', type=str, default='roberta-base', help='the model variant to use (default: roberta-base)')
+    parser.add_argument('model_variant', type=str, help='the model variant to use (e.g: roberta-base)')
     parser.add_argument('--dataset_name', type=str, default='citation_intent', help='the name of the dataset')
     parser.add_argument('--adapter_config_name', type=str, default='seq_bn', help='the name of the adapter configuration file')
-    parser.add_argument('--study_suffix', type=str, default='adapter_v01_best', help='the suffix to add to the study name')
+    parser.add_argument('--study_suffix', type=str, default='adapter_fusion_test', help='the suffix to add to the study name')
     parser.add_argument('--config_path', type=str, default='../../training_configs', help='the path to training configuration files')
-    parser.add_argument('--config_name', type=str, default='roberta-base_citation_intent_seq_bn', help='the name of the configuration file')
+    parser.add_argument('--config_name', type=str, default='roberta-base', help='the name of the configuration file')
     parser.add_argument('--parallelism', type=str, default="0", help='')
     parser.add_argument('--overwrite', type=str, default="0", help='')
     parser.add_argument('--job_sequence', type=int, default=1, help='the number of job for parallel runs (default: 1)')
-    # To add support for different databases
+
     args = parser.parse_args()
 
     logger.info(f"Arguments: {args}")
@@ -92,18 +92,3 @@ if __name__ == "__main__":
 
     # Run in a single thread. You could run this file multiple times for the same study, Optuna would manage parallelism:
     optuna_objectives.run_study_experiments(cfg, **run_study_args)
-
-    # # Test the model
-    # classifier = TextClassificationPipeline(model=model, tokenizer=loader.tokenizer, device=0)
-    # test_result = classifier("We use the same set of binary features as in previous work on this dataset ( Pang et al. , 2002 ; Pang and Lee , 2004 ; Zaidan et al. , 2007 ) .")
-    # print(test_result)
-
-    # out_fldr_base = "./adapters"
-    # out_fldr = f"{out_fldr_base}/{model_variant}/{dataset_name}/{adapter_config_name}"
-    # if not os.path.exists(out_fldr):
-    #     os.makedirs(out_fldr)
-
-    # adapter_name = 'To retrieve'
-
-    # model.save_adapter(out_fldr, adapter_name)
-

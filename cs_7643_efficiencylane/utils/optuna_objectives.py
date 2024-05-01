@@ -12,6 +12,7 @@ import torch
 import mlflow
 import numpy as np
 import functools
+import adapters.composition as ac
 
 import copy
 from omegaconf import DictConfig
@@ -23,14 +24,21 @@ from adapters import AdapterTrainer, RobertaAdapterModel
 from utils import compute_metrics
 from data_loaders.citation_intent_data_loader import CSTasksDataLoader
 
-def handle_trial(model_variant, num_labels, dataset_name, training_args, adapter_config_name, dataset, trial, trainer_type, compute_metric):
+def handle_trial(model_variant, num_labels, dataset_name, training_args, adapter_config_name, dataset, trial, trainer_type, compute_metric, cfg):
     # if 1 == 1:
     #     raise NotImplementedError("This function is not implemented. Please implement the function.")
     training_args_class = TrainingArguments(**training_args)
 
     if trainer_type == 'adapter':
         assert adapter_config_name, "Adapter name is required for adapter training"
-        model = build_adapter_model(model_variant, num_labels, dataset_name, adapter_config_name)
+        if 'adapter_fusion' in trial.study.study_name:
+            assert cfg.adapter_fusion, "Adapter fusion config is required for adapter fusion training"
+            # Only support fusion of 2 adapters for now
+            adapter1_path = cfg.adapter_fusion['adapter1_path']
+            adapter2_path = cfg.adapter_fusion['adapter2_path']
+            model = build_adapter_fusion_model(model_variant, num_labels, dataset_name, adapter_config_name, adapter1_path, adapter2_path)
+        else:
+            model = build_adapter_model(model_variant, num_labels, dataset_name, adapter_config_name)
     elif trainer_type == 'model':
         model = build_classification_model(model_variant, num_labels)
     else:
@@ -81,6 +89,56 @@ def build_adapter_model(model_variant, num_labels, dataset_name, adapter_config_
     #     It activates the adapter and the prediction head such that both are used in every forward pass.
     # Activate the adapter
     model.train_adapter(adapter_name)
+
+    return model
+
+
+def build_adapter_fusion_model(model_variant, num_labels, dataset_name, adapter_config_name, adapter1_path, adapter2_path):
+    """
+    For exploration, we test the fusion of two pre-selected adapters.
+    There are some manual processing steps to ensure the correct adapter is loaded and named.
+    """
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # ======================================================
+    # Model & Adapter Config
+    # ======================================================
+    # Set up training for the Model and Adapter
+    config = RobertaConfig.from_pretrained(
+        "roberta-base",
+        num_labels=num_labels,
+        problem_type="single_label_classification",
+        hidden_dropout_prob=0.1,
+    )
+    
+    model = RobertaAdapterModel.from_pretrained(model_variant, config=config)
+    model.to(device)
+
+    # Add adapter to model
+    adapter_name = model_variant.split("/")[-1]+"_"+dataset_name+"_"+adapter_config_name+"_fusion"
+    model.load_adapter(adapter1_path, load_as='ad1', with_head=False)
+    model.load_adapter(adapter2_path, load_as='ad2', with_head=False)
+
+    adapter_setup = [
+        [
+            'ad1',
+            'ad2',
+        ]
+    ]
+    model.add_adapter_fusion(adapter_setup[0], "dynamic")
+    model.train_adapter_fusion(adapter_setup)
+
+    model.add_classification_head(
+        adapter_name,
+        num_labels=num_labels,
+        overwrite_ok=True
+    )
+
+    #  The train_adapter() method does two things:
+    #     It freezes all weights of the pre-trained model, so only the adapter weights are updated during training.
+    #     It activates the adapter and the prediction head such that both are used in every forward pass.
+    # Activate the adapter
+    model.train_adapter_fusion(ac.Fuse('ad1', 'ad2'))
 
     return model
 
@@ -171,7 +229,8 @@ def run_trial_for_seed(model, dataset, training_args_class, trial, trainer_type=
     logger.info(f"{trial.study.study_name} >> Seed={training_args_class.seed}: Trial {trial.number} finished: Eval Loss {eval_results['eval_loss']}, Eval F1: {eval_results['eval_macro_f1']}")
     return eval_results
 
-def run_study_experiments(cfg: DictConfig, model_variant, dataset_name, study_name, trainer_type='model', adapter_config_name=None, parallelism=False, job_sequence=1):
+def run_study_experiments(cfg: DictConfig, model_variant, dataset_name, study_name, trainer_type='model', adapter_config_name=None, 
+                          parallelism=False, job_sequence=1):
 
     """
     Optuna's role is broad. It looks at the performance of the model across different hyperparameter settings and different seeds 
@@ -201,7 +260,8 @@ def run_study_experiments(cfg: DictConfig, model_variant, dataset_name, study_na
             'dataset': dataset,
             'trial': trial,
             'trainer_type': trainer_type,
-            'compute_metric': cfg.optuna.trainer_objective
+            'compute_metric': cfg.optuna.trainer_objective,
+            'cfg': cfg # Added object to pass fusion config, to be refactored in future
         }
 
         if parallelism:
