@@ -61,7 +61,12 @@ To run this demo, set up the environment with necessary libraries, execute the t
 You can run commands such as the below to fine-tune pre-trained models (e.g., roberta-base):
 
   ```bash
-  python cs_7643_efficiencylane/demo/finetuning/finetuning.py roberta-base --dataset_name citation_intent --config_name config_finetuning --parallelism 1 --overwrite 1 --job_sequence 1
+  python cs_7643_efficiencylane/demo/finetuning/finetuning.py \
+  roberta-base \
+  --dataset_name citation_intent \
+  --study_suffix model_v01 \
+  --config_path ../../training_configs \
+  --config_name finetuning
   ```
 
 ## 2. Training New Adapters
@@ -79,7 +84,13 @@ To execute this demo, ensure the model, adapter, and training configurations are
 Similar to finetuning, you can run commands such as the below to train adapters.
 
   ```bash
-  python cs_7643_efficiencylane/demo/adapters/training_adapters.py roberta-base --dataset_name citation_intent --adapter_config_name seq_bn --study_suffix adapter_fusion_test --config_path ../../training_configs --config_name roberta-base --parallelism 0 --overwrite 1 --job_sequence 1
+  python cs_7643_efficiencylane/demo/adapters/new_adapter.py \
+  roberta-base \
+  --dataset_name citation_intent \
+  --adapter_config_name seq_bn \
+  --study_suffix adapter_v01 \
+  --config_path ../../training_configs \
+  --config_name adapter_default
   ```
 
 
