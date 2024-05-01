@@ -210,6 +210,7 @@ def run_trial_for_seed(model, dataset, training_args_class, trial, trainer_type=
 
     output_dir = training_args_class.output_dir
     if 'adapter_v01_best' in output_dir:
+        # Save best adapters
         # Note, this makes assumptions about model and base output dir
         # for instance, assumes the base output directory is 'training_output'
         out_fldr_base = "./adapters"

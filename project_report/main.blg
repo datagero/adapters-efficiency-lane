@@ -1,0 +1,51 @@
+This is BibTeX, Version 0.99d (TeX Live 2023)
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: main.aux
+The style file: ieee_fullname.bst
+Database file #1: references.bib
+Warning--to sort, need author or key in allenai_dont_stop_pretraining
+Warning--to sort, need author or key in transformers
+Warning--to sort, need author or key in adapterhub_overview
+Warning--to sort, need author or key in optuna
+You've used 10 entries,
+            2120 wiz_defined-function locations,
+            536 strings with 5487 characters,
+and the built_in function-call counts, 2956 in all, are:
+= -- 256
+> -- 212
+< -- 0
++ -- 80
+- -- 80
+* -- 214
+:= -- 495
+add.period$ -- 27
+call.type$ -- 10
+change.case$ -- 70
+chr.to.int$ -- 0
+cite$ -- 14
+duplicate$ -- 96
+empty$ -- 217
+format.name$ -- 80
+if$ -- 603
+int.to.chr$ -- 0
+int.to.str$ -- 0
+missing$ -- 6
+newline$ -- 50
+num.names$ -- 12
+pop$ -- 100
+preamble$ -- 1
+purify$ -- 60
+quote$ -- 0
+skip$ -- 63
+stack$ -- 0
+substring$ -- 50
+swap$ -- 12
+text.length$ -- 0
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 40
+warning$ -- 4
+while$ -- 12
+width$ -- 0
+write$ -- 92
+(There were 4 warnings)

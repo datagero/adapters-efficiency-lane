@@ -616,7 +616,6 @@ class TrainerAnalytics(TrainerUtilities):
 
         max_trials = df_trial_level.loc[df_trial_level.groupby('study')['av_trial_macro_f1'].idxmax()]
         max_df = df_base.merge(max_trials, on=['study', 'trial'], how='inner')
-
     
         # drop study col for cleanness
         # max_df.drop('study', axis=1, inplace=True)
@@ -757,6 +756,7 @@ class TrainerAnalytics(TrainerUtilities):
 
         best_epochs = []
         best_trials = []
+        hyperparameters = {}
         for row in max_df.itertuples():
             f1_score = row.av_trial_macro_f1
             study = row.study
@@ -773,39 +773,49 @@ class TrainerAnalytics(TrainerUtilities):
             batch_size = training_args['per_device_train_batch_size']
             epochs = training_args['num_train_epochs']
 
+            # # Grab best adapter configurations and save them
             # if  ('citation_intent' in study or 'sciie' in study) and (study.startswith('cs_roberta') or study.startswith('roberta-base')):
-            #     # ('citation_intent' in study and 'intent_seq_bn' in study and 'cs_roberta' in study) or \
-            #     # ('sciie' in study and 'sciie_seq_bn' in study and 'cs_roberta' in study) or \
-            #     # ('sciie' in study and 'sciie_seq_bn' in study and 'roberta-base' in study):
-            #         if 'adapter_v' in study:
-            #             print(f"Study: {study}, \
-            #                 \n ----> F1 Score: {f1_score}, \
-            #                 \n ----> Trial: {trial}, Learning Rate: {learning_rate}, Batch Size: {batch_size}, Epochs: {epochs}")
-            #             # Create a config for the best study
-            #             # Take as template the adapter_default.yaml
-            #             # Open the adapter_default.yaml
-            #             import yaml
-            #             study_version = study.split('_')[-1]
-            #             with open(f'cs_7643_efficiencylane/training_configs/adapter_{study_version}/adapter_default.yaml', 'r') as file:
-            #                 adapter_config = yaml.load(file, Loader=yaml.FullLoader)
-            #             # Delete search space
-            #             adapter_config.pop('optuna_search_space')
-            #             # Place the optimal parameters
-            #             adapter_config['training_args']['learning_rate'] = learning_rate
-            #             adapter_config['training_args']['per_device_train_batch_size'] = batch_size
-            #             adapter_config['training_args']['per_device_eval_batch_size'] = epochs
-            #             adapter_config['training_args']['num_train_epochs'] = epochs
-                        
-            #             # Only 3 trials to account potential processing variations (we will pick best)
-            #             adapter_config['optuna']['n_trials'] = 3
+            #     ('citation_intent' in study and 'intent_seq_bn' in study and 'cs_roberta' in study) or \
+            #     ('sciie' in study and 'sciie_seq_bn' in study and 'cs_roberta' in study) or \
+            #     ('sciie' in study and 'sciie_seq_bn' in study and 'roberta-base' in study):
 
-            #             # Save the config
-            #             config_name = '_'.join(study.split('_')[:-3])
-            #             config_dir = f'cs_7643_efficiencylane/training_configs/adapter_{study_version}_best'
-            #             os.makedirs(config_dir, exist_ok=True)
-            #             with open(f'{config_dir}/{config_name}.yaml', 'w') as file:
-            #                 yaml.dump(adapter_config, file)
 
+            # For best hyperparameters table
+            if  ('citation_intent' in study or 'sciie' in study or 'chemprot' in study):
+
+                # if 'adapter_v' in study:
+                hyperparameters[study] = {'learning_rate': learning_rate, 'batch_size': batch_size, 'epochs': epochs, 'f1_score': f1_score}
+
+
+                # if 'adapter_v' in study:
+                #     print(f"Study: {study}, \
+                #         \n ----> F1 Score: {f1_score}, \
+                #         \n ----> Trial: {trial}, Learning Rate: {learning_rate}, Batch Size: {batch_size}, Epochs: {epochs}")
+
+                    # # Create a config for the best study
+                    # # Take as template the adapter_default.yaml
+                    # # Open the adapter_default.yaml
+                    # import yaml
+                    # study_version = study.split('_')[-1]
+                    # with open(f'cs_7643_efficiencylane/training_configs/adapter_{study_version}/adapter_default.yaml', 'r') as file:
+                    #     adapter_config = yaml.load(file, Loader=yaml.FullLoader)
+                    # # Delete search space
+                    # adapter_config.pop('optuna_search_space')
+                    # # Place the optimal parameters
+                    # adapter_config['training_args']['learning_rate'] = learning_rate
+                    # adapter_config['training_args']['per_device_train_batch_size'] = batch_size
+                    # adapter_config['training_args']['per_device_eval_batch_size'] = batch_size
+                    # adapter_config['training_args']['num_train_epochs'] = epochs
+                    
+                    # # Only 3 trials to account potential processing variations (we will pick best)
+                    # adapter_config['optuna']['n_trials'] = 3
+
+                    # # Save the config
+                    # config_name = '_'.join(study.split('_')[:-3])
+                    # config_dir = f'cs_7643_efficiencylane/training_configs/adapter_{study_version}_best'
+                    # os.makedirs(config_dir, exist_ok=True)
+                    # with open(f'{config_dir}/{config_name}.yaml', 'w') as file:
+                    #     yaml.dump(adapter_config, file)
 
 
             best_trials.append({'study': study, 'trial': trial, 'f1_score': f1_score, 'learning_rate': learning_rate, 'batch_size': batch_size, 'epochs': epochs})
@@ -814,7 +824,42 @@ class TrainerAnalytics(TrainerUtilities):
         # Concatenate the dataframes inside best_epochs
         best_epochs_df = pd.concat(best_epochs)
 
-        
+        # Create dataframe of hyperparameters, the keys should be rows
+        df_hyperparameters = pd.DataFrame(hyperparameters).T.reset_index()
+
+        # Join to best_epochs_df
+        further_cols = best_epochs_df[base_cols]
+        further_cols.drop('trial', axis=1, inplace=True)
+        further_cols = further_cols.drop_duplicates()
+        df_hyperparameters = df_hyperparameters.merge(further_cols, left_on='index', right_on='study', how='left')
+
+        # # If name contains fusion, set version to fusion
+        # df_hyperparameters['version_clean'] = df_hyperparameters['study'].apply(lambda x: 'fusion' if 'fusion' in x else x)
+        # df_hyperparameters['version'] = df_hyperparameters['version_clean'].fillna(df_hyperparameters['version'])
+
+        df_hyperparameters.drop('index', axis=1, inplace=True)
+        df_hyperparameters.drop('study', axis=1, inplace=True)
+
+        # Only keep certain versions
+        df_hyperparameters = df_hyperparameters[df_hyperparameters['version'].isin(['v01', 'fusion'])]
+        df_hyperparameters.to_csv('resources/best_hyperparameters.csv', index=False)
+
+        # Print it with separator &
+        df_hyperparameters.sort_values(by=['short_study', 'task', 'adapter_name'], inplace=True, ascending=False)
+
+        # Ignore where adapter_name is NaN
+        df_hyperparameters = df_hyperparameters[~df_hyperparameters['adapter_name'].isna()]
+
+        latex_cols = ['short_study', 'adapter_name', 'learning_rate', 'batch_size', 'epochs']
+        for task in df_hyperparameters['task'].unique():
+            print(task)
+            data = df_hyperparameters[df_hyperparameters['task'] == task][latex_cols]
+            for row in data.itertuples():
+                formatted_cells = [row.short_study.replace('_', '\\_'), row.adapter_name, f"{row.learning_rate:.6f}", int(row.batch_size), int(row.epochs)]
+                print(' & '.join(map(str, formatted_cells)) + ' \\\\')
+            print('\\hline')
+
+
         # order by model_type, sh
 
 
@@ -822,93 +867,12 @@ class TrainerAnalytics(TrainerUtilities):
         # Unique short studies
         short_studies = best_epochs_df['short_study'].unique()
 
-        # # Set up the plot style
-        # sns.set(style="whitegrid")
-
-        # for study in short_studies:
-        #     # Filter data for the current study
-        #     study_data = best_epochs_df[best_epochs_df['short_study'] == study]
-
-        #     # Plot setup
-        #     plt.figure(figsize=(10, 6))
-        #     plt.title(f'Learning Curves for {study}')
-        #     plt.xlabel('Epoch')
-        #     plt.ylabel('Eval Loss')
-
-        #     # Plot learning curve for each seed
-        #     for seed in study_data['seed'].unique():
-        #         subset = study_data[study_data['seed'] == seed]
-        #         sns.lineplot(x='epoch', y='eval_loss', data=subset, label=f'Seed {seed}')
-
-        #     plt.legend(title='Seeds')
-        #     plt.show()
-
-
         # Set up the plot style
         # Set the aesthetic style of the plots
         sns.set(style="whitegrid")
 
-        # Get unique model types
-        model_types = best_epochs_df['model_type'].unique()
-        tasks = best_epochs_df['task'].unique()
 
-        for task in tasks:
 
-            # Iterate over each model type to create a separate figure
-            for model_type in model_types:
-                # Filter data for the current model type
-                model_data = best_epochs_df[(best_epochs_df['model_type'] == model_type) & (best_epochs_df['task'] == task)]
-
-                if model_data.empty:
-                    continue
-
-                # Get unique studies and adapter_name combination for this model type
-                if model_type == 'adapter':
-                    model_data['study_adapter'] = model_data['short_study'] + '_' + model_data['adapter_name']
-                else:
-                    model_data['study_adapter'] = model_data['short_study']
-
-                studies_adapter = model_data['study_adapter'].drop_duplicates()
-                
-                # Calculate the number of rows needed for the subplots
-                n_studies = len(studies_adapter)
-                n_rows = (n_studies + 1) // 2  # Ensure enough rows for all studies
-                
-                # Create a figure with subplots in a two-column layout
-                fig, axs = plt.subplots(n_rows, 2, figsize=(20, 6 * n_rows), sharex=True)
-                
-                # Flatten the axis array and trim any excess if the number of studies is odd
-                axs = axs.flatten()
-                for ax in axs[n_studies:]:  # Hide any unused axes
-                    ax.set_visible(False)
-
-                # Iterate over studies to create each subplot
-                for ax, study in zip(axs, studies_adapter):
-                    # Filter data for the current study
-                    study_data = model_data[model_data['study_adapter'] == study]
-                    trial = set(study_data['trial'])
-                    assert len(trial) == 1, "Multiple trials found for the same best study"
-
-                    # Plot setup for the subplot
-                    ax.set_title(f'Best Triall #{trial} Learning Curves for {study} ({model_type})')
-                    ax.set_xlabel('Epoch')
-                    ax.set_ylabel('Eval Macro F1')
-
-                    # Plot learning curve for each seed
-                    for seed in study_data['seed'].unique():
-                        subset = study_data[study_data['seed'] == seed]
-                        sns.lineplot(x='epoch', y='eval_macro_f1', data=subset, label=f'Seed {seed}', ax=ax)
-
-                    ax.legend(title='Seeds')
-
-                # Adjust layout
-                plt.suptitle(f'Learning Curves Overview - {model_type}\nTask - {task}', fontsize=16, fontweight='bold')
-    
-                plt.tight_layout()
-                os.makedirs(f'resources/{task}', exist_ok=True)
-                plt.savefig(f'resources/{task}/learning_curves_{model_type}.png')
-                # plt.show()
-                plt.close()
 
 
 
@@ -949,6 +913,10 @@ class TrainerAnalytics(TrainerUtilities):
                 #     continue
                 print("------> Processing task: ", task, "Version: ", version)
 
+                # Ignore best version
+                if version == 'best':
+                    continue
+    
                 out_dir = f'resources/{task}/{version}'
                 os.makedirs(out_dir, exist_ok=True)
 
@@ -962,7 +930,17 @@ class TrainerAnalytics(TrainerUtilities):
                 full_abbreviations = list(abbreviations.values()) + ['ROBERTA_Pfeiffer', 'ROBERTA_Houlsby', 'DAPT_Pfeiffer', 'DAPT_Houlsby', 'DAPT_TAPT_Pfeiffer', 'DAPT_TAPT_Houlsby']
                 full_abbreviations = list(dict.fromkeys(full_abbreviations))
 
-                # Make plots
+
+
+                # ================== Model & Adapter Plots ==================
+
+                # Plot Learning Curves
+                model_types = best_epochs_df['model_type'].unique()
+                for model_type in model_types:
+                    model_data = best_epochs_df[(best_epochs_df['model_type'] == model_type) & (best_epochs_df['task'] == task) & (best_epochs_df['version'] == version)]
+                    self.plot_learning_curves(model_data, model_type, out_dir)
+
+                # Plot the evaluation metrics against benchmarks
                 filters_dict = {'task': task, 'version': version}
                 self.plot_losses_by_type(filtered_df, filters_dict, out_dir)
 
@@ -970,13 +948,35 @@ class TrainerAnalytics(TrainerUtilities):
                 comparison_results = json.load(open(comparison_results_path))
                 comparison_results_task_raw = comparison_results[domain][task]['performance']['baseline']
                 comparison_results_task = {k: round(v['F1'] / 100, 4) for k, v in comparison_results_task_raw.items()}
-
-                # from pandas.api.types import CategoricalDtype
-                # cat_type = CategoricalDtype(categories=full_abbreviations, ordered=True)
-                # filtered_df['study_adapter'] = filtered_df['study_adapter'].astype(cat_type)
-                # set(filtered_df['study_adapter'])
-
                 self.plot_evaluation_f1_macro(filtered_df, filters_dict, full_abbreviations, comparison_results_task, out_dir)
+
+                # ================== Adapter Exclusive Plots, for project report ==================
+                # Only adapter plots
+
+                base_adapter = 'ROBERTA_Houlsby'
+
+                report_output_dir = f'project_report/resources/{task}/{version}'
+                os.makedirs(report_output_dir, exist_ok=True)
+
+                scoped_df = filtered_df[filtered_df['model_type'] == 'adapter']
+                scoped_df = scoped_df[scoped_df['short_study'] == 'ROBERTA']
+                scoped_df = scoped_df[scoped_df['study_adapter'] == base_adapter]
+                self.plot_losses_by_type(scoped_df, filters_dict, report_output_dir)
+                
+                # adapter_abbreviations = ['ROBERTA_Houlsby', 'DAPT_Houlsby']
+                adapter_abbreviations = [base_adapter]
+                self.plot_evaluation_f1_macro(filtered_df, filters_dict, adapter_abbreviations, comparison_results_task, report_output_dir)
+
+                report_output_dir_dapttapt = f'{report_output_dir}/DAPT_TAPT'
+                os.makedirs(report_output_dir_dapttapt, exist_ok=True)
+                adapter_abbreviations = ['DAPT_TAPT_Pfeiffer', 'DAPT_TAPT_Houlsby']
+                adapter_abbreviations = list(dict.fromkeys(adapter_abbreviations))
+                self.plot_evaluation_f1_macro(filtered_df, filters_dict, adapter_abbreviations, comparison_results_task, report_output_dir_dapttapt)
+
+                # Plot Learning Curves
+                adapter_best_epoch_data = best_epochs_df[(best_epochs_df['model_type'] == 'adapter') & (best_epochs_df['task'] == task) & (best_epochs_df['version'] == version)]
+                adapter_best_epoch_data = adapter_best_epoch_data[(adapter_best_epoch_data['short_study'] == 'ROBERTA') & (adapter_best_epoch_data['adapter_name'] == 'Pfeiffer')]
+                self.plot_learning_curves(adapter_best_epoch_data, 'adapter', report_output_dir)
 
 
     def extract_final_metrics(self, data, adapter=False):
@@ -1001,6 +1001,80 @@ class TrainerAnalytics(TrainerUtilities):
                     raise ValueError("Invalid entry type in log history")
 
         return last_training_entry, last_evaluation_entry, training_entries, evaluation_entries
+
+    def plot_learning_curves(self, df, model_type, out_dir):
+        # Filter data for the current model type
+        model_data = df[(df['model_type'] == model_type)]
+
+        if model_data.empty:
+            return
+
+        # Get unique studies and adapter_name combination for this model type
+        if model_type == 'adapter':
+            model_data['study_adapter'] = model_data['short_study'] + '_' + model_data['adapter_name']
+        else:
+            model_data['study_adapter'] = model_data['short_study']
+
+        studies_adapter = model_data['study_adapter'].drop_duplicates()
+        
+        # Calculate the number of rows needed for the subplots
+        n_studies = len(studies_adapter)
+        n_rows = (n_studies + 1) // 2  # Ensure enough rows for all studies
+        
+        def make_ax(ax, study, font_size):
+
+            # Filter data for the current study
+            study_data = model_data[model_data['study_adapter'] == study]
+            # Ignore best version run as not needed
+            study_data = study_data[~study_data['version'].str.contains('best')]
+
+            trial = set(study_data['trial'])
+            assert len(trial) == 1, "Multiple trials found for the same best study"
+
+            # Plot setup for the subplot
+            ax.set_title(f'Best Triall #{trial} Learning Curves for {study} ({model_type})', fontsize=font_size+3)
+            ax.set_xlabel('Epoch', fontsize=font_size)
+            ax.set_ylabel('Eval Macro F1', fontsize=font_size)
+
+            # Plot learning curve for each seed
+            for seed in study_data['seed'].unique():
+                subset = study_data[study_data['seed'] == seed]
+                sns.lineplot(x='epoch', y='eval_macro_f1', data=subset, label=f'Seed {seed}', ax=ax)
+
+            ax.legend(title='Seeds', fontsize=font_size-1)
+
+
+        # Create a figure with subplots in a two-column layout
+        if n_studies > 1:
+            fig, axs = plt.subplots(n_rows, 2, figsize=(20, 6 * n_rows), sharex=True)
+            font_size = 12
+        else:
+            fig, axs = plt.subplots(1, 1, figsize=(10, 6), sharex=True)
+            font_size = 16
+
+        # Flatten the axis array and trim any excess if the number of studies is odd
+        if n_studies > 1:
+            axs = axs.flatten()
+
+            for ax in axs[n_studies:]:  # Hide any unused axes
+                ax.set_visible(False)
+
+            # Iterate over studies to create each subplot
+            for ax, study in zip(axs, studies_adapter):
+                make_ax(ax, study, font_size)
+        else:
+            make_ax(axs, studies_adapter.iloc[0], font_size)
+
+        # Adjust layout
+        tasks = list(set(model_data['task']))
+        assert len(tasks) == 1, "Multiple tasks found for the same best study"
+        plt.suptitle(f'Learning Curves Overview - {model_type}\nTask - {tasks[0]}', fontsize=font_size+3, fontweight='bold')
+
+        plt.tight_layout()
+        plt.savefig(f'{out_dir}/learning_curves_{model_type}.png')
+        # plt.show()
+        plt.close()
+
 
     def plot_losses_by_type(self, df, filters_dict, out_dir):
 
@@ -1038,7 +1112,8 @@ class TrainerAnalytics(TrainerUtilities):
 
             plt.tight_layout()  # Adjust layout to prevent overlap
             plt.savefig(f'{out_dir}/{loss_type}_across_seeds_comparison.png')
-            plt.show()
+            # plt.show()
+            plt.close()
             print("Finished Loss Type Plot")
 
     def plot_evaluation_f1_macro(self, df, filters_dict, ordered_labels, comparison_results_task, out_dir):
@@ -1048,28 +1123,39 @@ class TrainerAnalytics(TrainerUtilities):
             'ROBERTA_Pfeiffer': df[df['study_adapter'] == 'TAPT']['av_trial_macro_f1'].mean(),
             'ROBERTA_Houlsby': df[df['study_adapter'] == 'TAPT']['av_trial_macro_f1'].mean(),
             'DAPT_Pfeiffer': df[df['study_adapter'] == 'DAPT_TAPT']['av_trial_macro_f1'].mean(),
-            'DAPT_Houlsby': df[df['study_adapter'] == 'DAPT_TAPT']['av_trial_macro_f1'].mean()})
+            'DAPT_Houlsby': df[df['study_adapter'] == 'DAPT_TAPT']['av_trial_macro_f1'].mean(),
+            'DAPT_TAPT_Pfeiffer': df[df['study_adapter'] == 'DAPT_TAPT']['av_trial_macro_f1'].mean(),
+            'DAPT_TAPT_Houlsby': df[df['study_adapter'] == 'DAPT_TAPT']['av_trial_macro_f1'].mean()})
 
         # Set the aesthetic style of the plots
+        if len(ordered_labels) == 1:
+            width = 8
+            set_min_y = 0
+            font_size = 16
+        else:
+            width = 14
+            set_min_y = 9999
+            font_size = 14
+
         sns.set_style("whitegrid")
-        plt.figure(figsize=(14, 8))
+        plt.figure(figsize=(width, 8))
 
         if filters_dict['task'] == 'ACL-ARC':
-            min_y, max_y = 0.4, 0.85
+            min_y, max_y = min(set_min_y, 0.4), 0.85
         elif filters_dict['task'] == 'SCIERC':
-            min_y, max_y = 0.6, 0.95
+            min_y, max_y = min(set_min_y, 0.6), 0.95
         elif filters_dict['task'] == 'HYPERPARTISAN':
-            min_y, max_y = 0.7, 1
+            min_y, max_y = min(set_min_y, 0.7), 1
         elif filters_dict['task'] == 'AGNEWS':
-            min_y, max_y = 0.8, 1
+            min_y, max_y = min(set_min_y, 0.8), 1
         elif filters_dict['task'] == 'HELPFULNESS':
-            min_y, max_y = 0.4, 0.85
+            min_y, max_y = min(set_min_y, 0.4), 0.85
         elif filters_dict['task'] == 'IMDB':
-            min_y, max_y = 0.8, 1
+            min_y, max_y = min(set_min_y, 0.8), 1
         elif filters_dict['task'] == 'CHEMPROT':
-            min_y, max_y = 0.6, 0.95
+            min_y, max_y = min(set_min_y, 0.6), 0.95
         elif filters_dict['task'] == 'RCT':
-            min_y, max_y = 0.6, 0.95
+            min_y, max_y = min(set_min_y, 0.6), 0.95
         else:
             raise ValueError("Invalid task")
 
@@ -1079,11 +1165,12 @@ class TrainerAnalytics(TrainerUtilities):
         # cat_type = CategoricalDtype(categories=ordered_labels, ordered=True)
         # df['study_adapter'] = df['study_adapter'].astype(cat_type)
 
-        ax = sns.boxplot(data=df, x='study_adapter', y='eval_macro_f1', hue='trial', palette='Set2',
+        try:
+            ax = sns.boxplot(data=df, x='study_adapter', y='eval_macro_f1', hue='trial', palette='Set2',
                          order=ordered_labels)
-
-        # Font settings for annotations
-        fontdict = {'fontsize': 10, 'fontweight': 'bold'}
+        except Exception as e:
+            print("Error in boxplot", e)
+            ax = sns.boxplot(data=df, x='study_adapter', y='eval_macro_f1', hue='trial', palette='Set2')
 
         # Draw the benchmark lines and the average eval_macro_f1 per study/trial
         for i, study in enumerate(ordered_labels):
@@ -1113,34 +1200,35 @@ class TrainerAnalytics(TrainerUtilities):
                     av_f1_arrow_style = '->'
 
                 # Annotate the benchmark
-                plt.annotate(f'{benchmark:.2f}', (x_position, min_y + (0.025)*2), textcoords="offset points", xytext=(0,10),
-                            ha='center', va='bottom', color='red', fontweight='bold', fontsize=12,
+                plt.annotate(f'{benchmark:.2f}', (x_position, benchmark + (0.025)*2), textcoords="offset points", xytext=(0,10),
+                            ha='center', va='bottom', color='red', fontweight='bold', fontsize=font_size-2,
                             arrowprops=dict(arrowstyle=benchmark_arrow_style, color='red'))
 
                 # Annotate the average eval_macro_f1
-                plt.annotate(f'{av_f1:.2f}', (x_position, min_y + 0.025), textcoords="offset points", xytext=(0,-15),
-                            ha='center', va='top', color='green', fontweight='bold', fontsize=12,
+                plt.annotate(f'{av_f1:.2f}', (x_position, benchmark + 0.025), textcoords="offset points", xytext=(0,-15),
+                            ha='center', va='top', color='green', fontweight='bold', fontsize=font_size-2,
                             arrowprops=dict(arrowstyle=av_f1_arrow_style, color='green'))
 
 
-        benchmark_patch = mpatches.Patch(color='red', label='Benchmark', linestyle='--', linewidth=2)
+        benchmark_patch = mpatches.Patch(color='red', label='TAPT Benchmark', linestyle='--', linewidth=2)
         av_f1_patch = mpatches.Patch(color='green', label='Average eval_macro_f1', linestyle='-', linewidth=2)
 
         # Adding legends to the plot
-        legend1 = ax.legend(handles=[benchmark_patch, av_f1_patch], loc='upper right', bbox_to_anchor=(1, 1), title="Metrics")
+        legend1 = ax.legend(handles=[benchmark_patch, av_f1_patch], loc='lower right', bbox_to_anchor=(1, 0), title="Metrics", fontsize=font_size-2)
         ax.add_artist(legend1)  # Adding the first legend manually so it doesn't disappear when adding the second legend for trials
 
 
         filters_subtitle = ', '.join([f'{key}: {value}' for key, value in filters_dict.items()])
         plt.title(f'Evaluation Macro F1 Score Across Different Seeds for Each Trial \n \
-                  {filters_subtitle}')
+                  {filters_subtitle}', fontsize=font_size+3)
         plt.xlabel('Study')
-        plt.ylabel('Evaluation Macro F1 Score')
-        plt.xticks(rotation=45)
-        plt.legend(title='Trial', loc='upper left', bbox_to_anchor=(1, 1))
+        plt.ylabel('Evaluation Macro F1 Score', fontsize=font_size)
+        if len(ordered_labels) > 1:
+            plt.xticks(rotation=45)
+        plt.legend(title='Trial', loc='upper left', bbox_to_anchor=(1, 1), fontsize=font_size-2)
         plt.tight_layout()
         plt.savefig(f'{out_dir}/evaluation_macro_f1_across_seeds.png', dpi=300)
-        plt.show()
+        # plt.show()
         plt.close()
         print("Finished F1 Metric Plot")
 
