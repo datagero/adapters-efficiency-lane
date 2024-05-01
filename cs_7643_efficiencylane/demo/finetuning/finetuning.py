@@ -41,7 +41,7 @@ if __name__ == "__main__":
         allenai/dsp_roberta_base_dapt_cs_tapt_citation_intent_1688 is the published (2020) pre-trained with dapt and then with tapt data.
     """
     parser = argparse.ArgumentParser(description='Training Classifier Head for pre-trained model.')
-    parser.add_argument('model_variant', type=str, default='roberta-base', help='the model variant to use (default: roberta-base)')
+    parser.add_argument('model_variant', type=str, help='the model variant to use (e.g.: roberta-base)')
     parser.add_argument('--dataset_name', type=str, default='chemprot', help='the name of the dataset')
     parser.add_argument('--study_suffix', type=str, default='default_test', help='the suffix to add to the study name')
     parser.add_argument('--config_path', type=str, default='../../training_configs', help='the path to training configuration files')
