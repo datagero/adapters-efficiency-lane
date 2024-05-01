@@ -21,7 +21,7 @@ def delete_folder_and_optuna_study(delete_candidate):
     # Delete from optuna
     from utils import mlops
     storage = "sqlite:///db.sqlite3"
-    study_exists = mlops.check_study_exists(storage, delete_candidate)
+    study_exists = mlops.check_study_exists(delete_candidate, storage)
     if study_exists:
         logger.info(f"Deleting {delete_candidate} from storage.")
         optuna.study.delete_study(delete_candidate, storage)
@@ -34,16 +34,21 @@ if __name__ == "__main__":
     Run different pre-trained models by changing the model_variant variable.
     We will then build a classification head for the model.
     e.g. 
+    e.g. for supported pre-trained models:
         roberta-base is the base pre-trained model.
-        allenai/cs_roberta_base is the base pre-trained model.
-        ./mlm_model is our pre-trained with tapt data.
-        allenai/dsp_roberta_base_tapt_citation_intent_1688 is the published (2020) pre-trained with tapt data.
+        allenai/cs_roberta_base is the base pre-trained model for CS domain (DAPT).
+        allenai/dsp_roberta_base_tapt_citation_intent_1688 is the published (2020) pre-trained with TAPT data.
         allenai/dsp_roberta_base_dapt_cs_tapt_citation_intent_1688 is the published (2020) pre-trained with dapt and then with tapt data.
+        allenai/biomed_roberta_base is the base pre-trained model for BIOMED domain (DAPT).
+        allenai/dsp_roberta_base_tapt_chemprot_4169 is the published (2020) pre-trained with TAPT data.
+        allenai/dsp_roberta_base_dapt_biomed_tapt_chemprot_4169 is the published (2020) pre-trained with dapt and then with tapt data.
+
+        ./mlm_model is our pre-trained with tapt data (need to build this locally first)
     """
     parser = argparse.ArgumentParser(description='Training Classifier Head for pre-trained model.')
     parser.add_argument('model_variant', type=str, help='the model variant to use (e.g.: roberta-base)')
     parser.add_argument('--dataset_name', type=str, default='chemprot', help='the name of the dataset')
-    parser.add_argument('--study_suffix', type=str, default='default_test', help='the suffix to add to the study name')
+    parser.add_argument('--study_suffix', type=str, default='default_test', help='the suffix to add to the study name, this also corresponds to the folder name in the training_configs directory')
     parser.add_argument('--config_path', type=str, default='../../training_configs', help='the path to training configuration files')
     parser.add_argument('--config_name', type=str, default='finetuning_test', help='the name of the configuration file')
     parser.add_argument('--parallelism', type=str, default="0", help='')

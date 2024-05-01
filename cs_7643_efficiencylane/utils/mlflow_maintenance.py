@@ -1,3 +1,7 @@
+"""
+Simple functions to maintain repo cleanliness by deleting old MLflow logs.
+"""
+
 import os
 
 def list_folders(directory):

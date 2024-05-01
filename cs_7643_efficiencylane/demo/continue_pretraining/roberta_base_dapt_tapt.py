@@ -1,3 +1,8 @@
+"""
+At the beggining of our project, we aimed to replicate the continued pretraining models from https://github.com/allenai/dont-stop-pretraining
+This was achieved through the use of RobertaForMaskedLM and Trainer from the HuggingFace Transformers library.
+"""
+
 import os
 from transformers import Trainer, TrainingArguments
 from transformers import RobertaForMaskedLM
@@ -5,7 +10,7 @@ import torch
 
 # Our built utilities
 from utils import yaml_utils
-from data_loaders.citation_intent_data_loader import CSTasksDataLoader
+from data_loaders.task_data_loader import TaskDataLoader
 
 # ======================================================
 # Set-up and Load Data
@@ -13,7 +18,7 @@ from data_loaders.citation_intent_data_loader import CSTasksDataLoader
 model_name = 'roberta-base'
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-loader = CSTasksDataLoader(model_name="roberta-base",
+loader = TaskDataLoader(model_name="roberta-base",
                                   dataset_name="citation_intent",
                                   path=f"data/citation_intent/",
                                   checkpoint_path="data/citation_intent/processed_dataset.pt")
