@@ -1,16 +1,15 @@
 # Efficiency Lane: Task-Specific Adapters for RoBERTa on AdapterHub
 
-** Note, you may want to add `${workspaceFolder}/cs_7643_efficiencylane` to PYTHONPATH
-e.g.,
-
-`export PYTHONPATH=${PYTHONPATH}:/home/hice1/avizcaino3/scratch/repos/CS-7643-EfficiencyLane/cs_7643_efficiencylane`
-
 ## Overview
 Efficiency Lane is a repository that houses task-specific adapters for RoBERTa, structured to facilitate easy data management, model training, and demonstrations of capabilities. Below is a detailed overview of the project's directory structure and functionalities.
 
 ## Project Structure
 
 ### Code and Processing
+** Note, you may want to add `${workspaceFolder}/cs_7643_efficiencylane` to PYTHONPATH, e.g.
+
+`export PYTHONPATH=${PYTHONPATH}:/home/hice1/avizcaino3/scratch/repos/CS-7643-EfficiencyLane/cs_7643_efficiencylane`
+
 - **CS 7643 Efficiency Lane (`./cs_7643_efficiencylane/`)**:
   - **demo/**: Showcases the project capabilities through various demonstrations.
     - Refer to [Link to CS 7643 EfficiencyLane Demo](cs_7643_efficiencylane/demo/README.md) for more detailed instructions on how to train our models and adapters.
@@ -40,7 +39,8 @@ python cs_7643_efficiencylane/utils/download_datasets.py
 - **Training Output (`./training_output/`)**:
   - Contains logs and outputs from Optuna training sessions.
 
-
+- **Analytics Output (`./resources/`)**:
+  - Contains plots and tables from our analytics layer.
 ---
 
 # Demo Descriptions
@@ -59,6 +59,7 @@ These are stored in the `cs_7643_efficiencylane/demo/finetuning` folder. This de
 To run this demo, set up the environment with necessary libraries, execute the training, and evaluate the model. Configuration details are fetched from YAML files, ensuring that the setup can be easily replicated or adjusted.
 
 You can run commands such as the below to fine-tune pre-trained models (e.g., roberta-base):
+
   ```bash
   python cs_7643_efficiencylane/demo/finetuning/finetuning.py roberta-base --dataset_name citation_intent --config_name config_finetuning --parallelism 1 --overwrite 1 --job_sequence 1
   ```
@@ -70,12 +71,13 @@ These are stored in the `cs_7643_efficiencylane/demo/adapters` folder. We train 
 ### Components
 - **Adapter Training Setup**: Involves initializing a RoBERTa model with an added adapter and a matching classification head for the specific dataset.
 - **Optuna Integration**: Utilizes Optuna for hyperparameter tuning to optimize the training process, focusing on learning rates and batch sizes.
-- **Pipeline Testing**: A `TextClassificationPipeline` is used to test the adapter's performance on sample text, ensuring that the model functions as expected after training.
+- **Adapter Fusion**: A POC is build that supports the fuse of two distinct adapters, showcasing the multi-task and transfer learning capabilities of adapters.
 
 ### Execution
-To execute this demo, ensure the model, adapter, and training configurations are correctly set up. The training process is managed by the `AdapterTrainer`, which focuses solely on adapting the newly added components. After training, the adapter can be saved locally or pushed to the Adapter-Hub for broader accessibility.
+To execute this demo, ensure the model, adapter, and training configurations are correctly set up. The training process is managed by the `AdapterTrainer`, which focuses solely on adapting the newly added components. After training, the adapter can be saved locally or pushed to the [Adapter-Hub](https://adapterhub.ml/) for broader accessibility.
 
 Similar to finetuning, you can run commands such as the below to train adapters.
+
     ```bash
     python cs_7643_efficiencylane/demo/adapters/training_adapters.py roberta-base --dataset_name citation_intent --adapter_config_name seq_bn --study_suffix adapter_fusion_test --config_path ../../training_configs --config_name roberta-base --parallelism 0 --overwrite 1 --job_sequence 1
     ```
