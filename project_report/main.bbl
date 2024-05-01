@@ -37,6 +37,11 @@ Michael McCloskey and Neal~J. Cohen.
 \newblock Catastrophic interference in connectionist networks: The sequential learning problem.
 \newblock {\em Psychology of Learning and Motivation}, 1989.
 
+\bibitem{pfeiffer2020adapterfusion}
+Jonas Pfeiffer, Aishwarya Kamath, Andreas Rücklé, Kyunghyun Cho, and Iryna Gurevych.
+\newblock Adapterfusion: Non-destructive task composition for transfer learning.
+\newblock {\em ArXiv}, 2020.
+
 \bibitem{pfeiffer2020adapterhub}
 Jonas Pfeiffer, Andreas Rücklé, Clifton Poth, Aishwarya Kamath, Ivan Vulić, Sebastian Ruder, Kyunghyun Cho, and Iryna Gurevych.
 \newblock Adapterhub: A framework for adapting transformers.

@@ -66,7 +66,7 @@ William Gleason\\
 
 \subsection{Objective} We explore how traditional methods using fine-tuning compare to newer architectures using adapters in the context of transfer learning with pre-trained models for natural language tasks. We conduct a comparison across 4 types of pre-trained models that have been used before in other studies \cite{gururangan2020dont}. 1. A generic LLM, RoBERTa. 2. An LLM pre-trained on text in the domain of a task (DAPT). 3. An LLM pre-trained on the unlabeled data from a specific task (TAPT) 4. LLM pre-trained on both (DAPT + TAPT). 
 
-Adapters are more lightweight, modular and composable than traditional fine-tuning methods. However, there may exist a performance penalty due to the reduced number of trainable parameters. This project looks at using parameter-efficient adapters for theTEST  RoBERTa transformer to achieve comparable performance to fine-tuning. Expanding from (Houlsby et al., 2019), our scope consists of two adapter configurations (Pfeiffer and Houlsby) imposed over tasks that contain specialized language and domains not extensively available in the base RoBERTa model. This allows us to assess if adapters can infuse knowledge efficiently, in a way that is comparable to Gururangan’s Task Adaptive Pretraining (TAPT) with small datasets related to two tasks in the Computer Science domain and one task for Biomedicine. Additionally, we evaluate the effectiveness of Adapter Fusion, a recently proposed multi-task learning architecture that aims to leverage multiple modular adapters using an attention layer. 
+Adapters are more lightweight, modular and composable than traditional fine-tuning methods. However, there may exist a performance penalty due to the reduced number of trainable parameters. This project looks at using parameter-efficient adapters for the RoBERTa transformer to achieve comparable performance to fine-tuning. Expanding from (Houlsby et al., 2019), our scope consists of two adapter configurations (Pfeiffer and Houlsby) imposed over tasks that contain specialized language and domains not extensively available in the base RoBERTa model. This allows us to assess if adapters can infuse knowledge efficiently, in a way that is comparable to Gururangan’s Task Adaptive Pretraining (TAPT) with small datasets related to two tasks in the Computer Science domain and one task for Biomedicine. Additionally, we evaluate the effectiveness of Adapter Fusion, a recently proposed multi-task learning architecture that aims to leverage multiple modular adapters using an attention layer. 
 
 Throughout the study, we evaluate our models and compare them by the F1-Macro Score and the number of trainable parameters of their network, with specific focus on traditional fine-tuning, TAPT pre-training, and adapter methods. Albeit we focus on a small number of low-resource tasks ($<$ 5K records), the results support the potential of adapters as a parameter-efficient contestant to fine-tuning and as a viable alternative to TAPT for some use-cases, such as mid-sized ($>$ 3K) datasets.
 
@@ -107,6 +107,8 @@ Fine-tuning has several benefits as it allows to use the learned representations
 \end{itemize}
 Adapters do not suffer from these drawbacks \cite{houlsby2019parameter}. The number of trained parameters is a tiny fraction compared to fine-tuning, significantly reducing the computational resources for fine-tuning as shown in \Cref{tab:model-parameters}. This is achieved through the use of bottleneck architecture, which involves downsizing the outputs of the previous layer, passing them through a non-linearity, and then upsizing them to match the inputs of the next layer. Additionally, adapters are modular as multiple adapters can be loaded onto the same base model to perform multiple tasks, eliminating the need for a copy of the base model for each task. Further, as they preserve the original model weights, they are more capable of maintaining the base model integrity and performance across tasks.
 
+Adapter Fusion is an extension of the adapter architecture \cite{pfeiffer2020adapterfusion}. In Adapter Fusion, several trained adapters are combined in parallel, and an attention layer is added on top of the adapters to combine (fuse) them. Adapter fusion is then retrained on one of the original adapter’s tasks while updating the fusion layer and the classification head. We are interested in finding if this approach leads to better performance than a stand-alone adapter. Fusion allows the new model to leverage the original adapters information plus the potentially beneficial information from the other adapters without modifying their weights. This can lead to performance beyond just the original adapter while only minimally increasing the number of parameters. Additionally, by locking the base model and the adapter parameters the fusion setup avoids the problem of catastrophic forgetting that is typically an issue when fine tuning for multi-task training.
+
 Gururangan et al. \cite{gururangan2020dont} highlights the benefits of domain-adaptive pre-training (DAPT) and task-adaptive pre-training (TAPT), which tailor the pre-training phase to more closely align with the characteristics of the target tasks, potentially enhancing subsequent fine-tuning outcomes. For instance, they expose low vocabulary overlap between RoBERTa and the domain of Computer Science, and find that continued pre-training on this domain is beneficial for related tasks. Their insights are crucial for informing more efficient strategies for effective task-specific tuning, although they rely on expensive methods of retraining and fine-tuning. In “Parameter-Efficient Transfer Learning for NLP” \cite{houlsby2019parameter}, the authors show that adapters attain within 0.4\% of the performance of full-fine-tuning, adding only 3.6\% parameters per task. The paper used the BERT transformer as its pre-trained model and used tasks from the GLUE benchmark to prove its assertions. 
 
 We study parameter-efficient task adaptation using the RoBERTa model, which is a more robust version of BERT \cite{liu2019roberta}, and compare the results to those of Gururangan et al. \cite{gururangan2020dont}. As per Houlsby et al. \cite{houlsby2019parameter}, we expect the performance of adapters to be comparable to full fine-tuning, and further explore the capabilities for adapters as a viable alternative to TAPT to perform on out-of-domain tasks.
@@ -141,6 +143,13 @@ The task datasets have similar class distribution and are imbalanced, as shown i
 
 \textbf{Base Models and Fine-Tuning} For reproduction, we first aimed to use the same set-up as in Gururangan et. al. \cite{allenai_dont_stop_pretraining} but encountered limitations on compatibility with newer packages and versioning. Therefore, we chose the widely used HuggingFace Transformers library \cite{transformers} for training our models. We load the pre-trained models from \cite{allenai_dont_stop_pretraining} made publicly available \ref{table:base_models}, and fine-tune by training a classification head in supervised manner using the same task-specific datasets and similar approach to Gururangan et. al. \cite{gururangan2020dont}. We were able to recreate results that are close-enough to the reference paper (better in some cases), but further efforts may be needed for closer replication and inspection of original process \footnote{Although benchmark fine-tuning results broadly align, there are some differences, likely due to differences in infrastructure, libraries used, and possibly unreported training parameters. Biggest relative difference is our F1 roberta-base for ACL-ARC at 66.34 while Gururangan’s is 63.00}. The F1 metric from our version of fine-tuning results is taken as a benchmark to assess the performance of adapter methods.
 
+\begin{figure}[h]
+    \centering 
+    \includegraphics[width=0.45\textwidth]{resources/tmp_optuna_search.png}
+    \caption{Illustration: Optuna Hyperparameter Search of combinations for roberta-base SCIERC Task (Houlsby)}
+    \label{fig:optuna_search}
+\end{figure}
+
 \textbf{Adapters}  To assess the efficacy of adapter methods, we integrate task-specific adapters (and a prediction head) to each of the base models and train them separately using task-specific data. For training and managing configurations, we use AdapterHub \cite{adapterhub_overview} and two architectures: 
 \begin{itemize}
 \item Pfeiffer \cite{pfeiffer2020adapterhub} is a lightweight configuration that adds adapter modules between feed-forward layers. This minimally disrupts the base representations and maintains ability to generalize while adapting to new tasks. 
@@ -148,6 +157,7 @@ The task datasets have similar class distribution and are imbalanced, as shown i
 \end{itemize}
 The \ref{sec:model_layers} shows examples of the adapter modules added to the model for both configurations. Note the bottleneck architecture of the adapter modules. We compare results under two scopes: direct fine-tuning comparison, and continued taks-adaptive pre-training comparison.
 
+\textbf{Adapter Fusion} For each task we created a fusion “within” the same domain (the adapter for that task plus an adapter for the other task in the same domain) and a fusion “cross" with another domain (the original adapter for that domain plus a task outside that domain). To evaluate the impact of additional domain pre-training we analyze adapter fusion for both Roberta-base as well as the CS-Roberta. We also restricted the analysis to just the Pfeiffer Adapter.
 
 \begin{figure}[h]
     \centering 
@@ -156,19 +166,19 @@ The \ref{sec:model_layers} shows examples of the adapter modules added to the mo
     \label{fig:optuna_search_trials}
 \end{figure}
 
-\begin{figure}[h]
-    \centering 
-    \includegraphics[width=0.45\textwidth]{resources/tmp_optuna_search.png}
-    \caption{Illustration: Optuna Hyperparameter Search of combinations for roberta-base SCIERC Task (Houlsby)}
-    \label{fig:optuna_search}
-\end{figure}
-
 \subsection{Hyperparameter Search and Model Training} 
 
 For training our adapters, by focusing on hyperparameter efficiency and robust training techniques, we achieved competitive results against traditional fine-tuning approaches, as detailed in our results from \Cref{table:aclarc} with configuration \ref{table:fine_tuning_hyperparameters}. Our approach demonstrates that adapters, when optimized properly, can effectively leverage pre-trained models for task-specific applications, and be on-par or surprass our baseline fine-tuning strategies.
 
 \textbf{Hyperparameter Search:} Optuna \cite{optuna} was chosen as our hyperparameter optimization framework, especially useful in adapter training to traverse the combinations of learning rates, batch sizes and epochs. For a given search range \ref{table:optuna_search_space}, the framework applies Tree-Structured Parzen Estimator (TPE) that allowed for quick convergence to optimal settings, as illustrated in \Cref{fig:optuna_search_trials}. Each combination runs within a trial, and each trial is composed of 5 random seeds \footnote{The processes we ran also showed a lot of stochasticity across runs. We smoothed out most of the variance by the use of five random seeds, which helped in comparing across different runs. This is in line with \cite{allenai_dont_stop_pretraining} who report high standard deviation in their results, and also follow a 5-seed mean approach.}. The mean F1 on the test dataset is set as a performance metric for each trial, and we report this together with its standard deviation across the seeds. Smaller datasets often benefit from more granular updates (i.e., small batches) and moderate learning rattes prevent overfitting. Our best hyperparameters reflect this, as shown in \Cref{fig:optuna_search} and
 \Cref{table:best_hyperparameters_adapters}. The number of training epochs does not show a clear correlation with the F1 score, as the models seem to require few iterations to capture task specifics.
+
+\begin{figure}[h]
+    \centering 
+    \includegraphics[width=0.45\textwidth]{resources/SCIERC/v01/learning_curves_adapter.png}
+    \caption{Example of Learning Curve convergence for roberta-base SCIERC Task (Houlsby) for the 5 seeds in best trial}
+    \label{fig:learning_curve}
+\end{figure}
 
 \textbf{Training Optimization:} All models were trained using the Adam optimizer with L2 regularization, which is standard within the HuggingFace Transformers library. Since our tasks were all related to classification, cross-entropy loss was used for training. We adapted the learning rate and batch size based on outcomes from the Optuna search to maximize F1 score. Our experiments show robust performance across multiple training seeds, as shown in \Cref{fig:learning_curve}.
 
@@ -184,7 +194,7 @@ For training our adapters, by focusing on hyperparameter efficiency and robust t
     ROBERTA & 63.00$_{\text{ 5.80}}$ & 66.34$_{\text{ 4.67}}$ & \textbf{67.12}$_{\text{ 1.85}}$ & 65.53$_{\text{ 1.30}}$ & \textit{73.30}\dag$_{\text{ 0.38}}$  & 72.35$_{\text{ 1.29}}$ \\
     TAPT & 67.40$_{\text{ 1.80}}$ & \textbf{69.49}$_{\text{ 2.24}}$ & 67.22$_{\text{ 3.92}}$ & 65.12$_{\text{ 1.22}}$ & & \\ 
     DAPT & \underline{75.40}$_{\text{ 2.50}}$ & \textbf{74.65}$_{\text{ 3.33}}$ & 73.32$_{\text{ 1.79}}$ & 74.03$_{\text{ 3.36}}$ & 73.59$_{\text{ 0.49}}$ & 74.06$_{\text{ 1.27}}$ \\ 
-    DAPT\_TAPT & \underline{75.60}$_{\text{ 3.80}}$ & \textbf{74.89}$_{\text{ 2.48}}$ & 73.20$_{\text{ 2.84}}$ & 72.24$_{\text{ 1.55}}$ & - & \\ 
+    DAPT\_TAPT & \underline{75.60}$_{\text{ 3.80}}$ & \textbf{74.89}$_{\text{ 2.48}}$ & 73.20$_{\text{ 2.84}}$ & 72.24$_{\text{ 1.55}}$ &  & \\ 
     \midrule
     \multicolumn{1}{c}{\textbf{SCIERC}} \\
     ROBERTA & 77.30$_{\text{ 1.90}}$ & 80.02$_{\text{ 1.20}}$ & \textbf{81.60}$_{\text{ 0.42}}$ & 81.32$_{\text{ 0.71}}$ & 80.32$_{\text{ 0.21}}$ & 80.32$_{\text{ 0.15}}$ \\ 
@@ -199,17 +209,10 @@ For training our adapters, by focusing on hyperparameter efficiency and robust t
     DAPT\_TAPT & \underline{84.40}$_{\text{ 0.40}}$ & 81.71$_{\text{ 0.92}}$ & 81.67$_{\text{ 0.39}}$ & \textbf{82.29}$_{\text{ 0.40}}$ & & \\
     \bottomrule
     \end{tabular}
-    \caption{\textbf{Comparison of Fine-tuning and Adapter Methods} We show baseline from the original paper \cite{gururangan2020dont} for reference but use our baseline for comparison with other methods. We further add results for Adapter Fusion, that is based on Pfeiffer adapters. Adapter Fusion was performed for within domain tasks (e.g., fuse ACL-ARC and SCIERC) and cross-domain tasks (e.g., fuse ACL-ARC and CHEMPROT). The best results are in bold (where \cite{gururangan2020dont} wins, its \underline{underlined}, where Adapter Fusion wins, it is in \textit{italics}\dag.}
+    \caption{\textbf{Comparison of Fine-tuning and Adapter Methods} We show baseline from the original paper \cite{gururangan2020dont} for reference but use our baseline for comparison with other methods. We further add results for Adapter Fusion, that is based on Pfeiffer adapters. Adapter Fusion was performed for within domain tasks (e.g., fuse ACL-ARC and SCIERC) and cross-domain tasks (e.g., fuse ACL-ARC and CHEMPROT). The best results are in bold (where \cite{gururangan2020dont} wins, its \underline{underlined}, where Adapter Fusion wins, it is in \textit{italics}\dag).}
     \label{table:aclarc}
 \end{table*}
 
-
-\begin{figure}[h]
-    \centering 
-    \includegraphics[width=0.45\textwidth]{resources/SCIERC/v01/learning_curves_adapter.png}
-    \caption{Example of Learning Curve convergence for roberta-base SCIERC Task (Houlsby) for the 5 seeds in best trial}
-    \label{fig:learning_curve}
-\end{figure}
 \subsection{Approach Remarks} 
 Based on recent research showing the efficacy of adapters at performing on par with fine-tuning approaches \cite{houlsby2019parameter}, we felt confident that we can get comparable results with adapters. However, we take as baseline our reproduced results for fine-tuning as in \cite{gururangan2020dont}, which may not have been the best fine-tuning results possible for our tasks. We also note that the results of our fine-tuning are better than the original paper, which may be due to differences in infrastructure, libraries used, and possibly unreported training parameters.
 
@@ -270,15 +273,12 @@ The experiments suggest that domain-specific pre-training (DAPT) provides a stro
 \subsection{Pfeiffer vs Houlsby} 
 Given the higher number of trainable parameters with Houlsby compared to Pfeiffer, we expected Houlsby configuration to perform better than Pfeiffer, in general. While the sample size of tasks is small to imply too broad a conclusion, we can see that for the chosen tasks and optimized training, the Houlsby configuration was slightly better than Pfeiffer, especially when the dataset is larger. When the datasets are small there is no discernible difference, as both configurations are equally capable of optimal learning. It is expected that Houlsby would be better generally, given the higher number of trained parameters introduced by the Houlsby configuration (2.42\% vs 1.71\%). However, Pfeiffer configuration does have a definite advantage of being more parameter-efficient and this would be a desirable quality when we are talking of lots of tasks. We could see a bit of tradeoff in parameter-efficient configuration vs task performance for bigger datasets.
 
-\subsection{Adapter Composition/Fusion}
-TBD
+\subsection{Adapter Fusion}
+The “Within” adapter fusion results \ref{table:aclarc} were surprising for the ACL-ARC task. While the DAPT aligned with expectations, slightly exceeding that of the Pfeiffer adapter, the RoBERTa results far exceeded the adapter and were on par with DAPT. This could be because the training data of the SCI-ERC and was in the same domain, and so it was able to leverage some of that knowledge improve results.
 
+The “Within” adapter fusion results for the SCI-ERC task performed slightly worse than the solo adapter. This could be for several reasons, the selection of the specific adapters 5 runs, the exact hyperparameters, or because the ACL-ARC adapter is not adding much value and so the additional values are leading to overfitting.
 
-
-
-
-
-
+Finally, while the Cross Fusion results for SCIERC and CHEMPROT were close to expected, aligning producing similar results to the individual Pfeiffer Adapters, the results for ACL-ARC were surprising. Cross Adapter Fusion for RoBERTa performed almost on par with DAPT. This means the model gained significant information from adapter outside of its domain. This could be because of the large amount of training data for CHEMPROT and also because CHEMPROT’s Biomed domain has a 21\% overlap with the CS domain \cite{gururangan2020dont}
 
 
 \section{Conclusions}
@@ -286,13 +286,11 @@ Through our experiments with natural language, low-resource tasks that extend be
 
 We also see that the benefits of pre-training across domain and tasks applied to adapters as well. Remarkably, adapters provided comparable or superior performance to TAPT, making them particularly valuable for low-resource settings with low budget or data availability for training. Additionally, through comparing the two popular adapter architectures – Pfeiffer and Houlsby, we find Houlsby performed slightly better when trained in our larger datasets, but the fact that Pfeiffer is more parameter-efficient and comparable to Houlsby in lower resource tasks makes it a competitive contestant. This is in line with expectations given Houlsby is naturally more adept for more complex tasks.
 
-% Colour red
-\textcolor{red}{We need to revisit this and re-purpose for Fusion}
-Adapter composition allowed us to create a single model capable of performing multiple tasks using the parameter-efficient adapters. The combined model was at par with the individual adapters for each task since, in theory, adapters do not suffer much from forgetting previous tasks when learning new ones. This has significant benefits for inference, where the same model can perform multiple tasks as well as individual models, while requiring a much smaller size.
+Adapter fusion shows promise as a method to improve results beyond a single adapter without significantly increasing the number of parameters, particularly when the domain or task of the adapters overlap.
 
-\textcolor{red}{To add strong closing statement, answer "Who Cares? What difference will it make?}
 
-Future work could explore additional adapter architectures, composition strategies, and their application across a wider range of NLP tasks and domains.
+
+Future work could explore additional adapter architectures, and their application across a wider range of NLP tasks and domains. We can also study the potential of Adapter Fusion to train on a completely new task.
 
 
 %-------------------------------------------------------------------------
@@ -327,16 +325,24 @@ William Gleason & Implementation and Analysis & Study of adapter composition usi
 \FloatBarrier
 
 
-\section{Task Dataset Balance}
+\section{Task Dataset Balance \& Illustration of Predictions}
 % Insert a figure that spans both columns
 \begin{figure*}[h] % 'h' suggests the figure appears in the specified location
     \centering % Center the image
-    \includegraphics[width=0.8\textwidth]{./resources/label_distribution.png} % Make the image full page width
+    \includegraphics[width=0.60\textwidth]{./resources/label_distribution.png} % Make the image full page width
     \caption{Class Distribution for task datasets} % Add a caption
     \label{fig:datasetbalance} % Label the figure for cross-referencing
 \end{figure*}
 
+\begin{figure*}[h] % 'h' suggests the figure appears in the specified location
+    \centering % Center the image
+    \includegraphics[width=0.45\textwidth]{./resources/confusion_matrix_predictions_roberta-base_sciie_double_seq_bn.png} % Make the image full page width
+    \caption{True vs Predicted labels for SciERC task using RoBERTa base model (Houlsby Adapter)} % Add a caption
+    \label{fig:results} % Label the figure for cross-referencing
+\end{figure*}
+\FloatBarrier
 
+\newpage{}
 \section{HuggingFace Base Models Used}
 The list below shows the pre-trained models used for the three tasks.
 
@@ -361,11 +367,8 @@ CHEMPROT & Base & roberta-base \\
 \caption{Model Sources for Different Tasks}
 \label{table:base_models}
 \end{table}
-
-
 \FloatBarrier
 
-\newpage{}
 \section{Adapters vs Full FineTuning}
 \begin{table}[h]
 \centering
@@ -396,7 +399,6 @@ CHEMPROT & RoBERTA Base & 80.69 & 80.38 & 80.95 & -0.38\% & 0.32\% \\
 different random seeds.}
 \label{table:adaptersvsft}
 \end{table}
-\FloatBarrier
 
 \newpage{}
 \section{Training Environment and Hyper-Parameter Optimization}
@@ -492,6 +494,7 @@ Layers shown with parameter counts. Only showing the 1st layer for sample purpos
 
 \begin{table}[htbp]
     \centering
+    \small
     \caption{Description of Layers in Different Models}
     \begin{tabular}{|l|c|c|c|}
         \hline
