@@ -33,13 +33,13 @@ This script allows the training of adapter modules on top of pre-trained models.
 To run the adapter training script, you will need to specify various parameters such as the model variant and the dataset name. Below is an example command:
 
 ```bash
-python cs_7643_efficiencylane/demo/adapters/training_adapters.py \
+python cs_7643_efficiencylane/demo/adapters/new_adapter.py \
 roberta-base \
 --dataset_name citation_intent \
 --adapter_config_name seq_bn \
---study_suffix adapter_fusion_test \
+--study_suffix adapter_v01 \
 --config_path ../../training_configs \
---config_name roberta-base \
+--config_name adapter_default \
 --parallelism 0 \
 --overwrite 1 \
 --job_sequence 1
@@ -57,7 +57,9 @@ Similar to the adapter training script, you will specify the model and dataset a
 python cs_7643_efficiencylane/demo/finetuning/finetuning.py \
 roberta-base \
 --dataset_name citation_intent \
---config_name config_finetuning \
+--study_suffix model_v01 \
+--config_path ../../training_configs \
+--config_name finetuning \
 --parallelism 0 \
 --overwrite 1 \
 --job_sequence 1
